@@ -1,0 +1,18 @@
+{
+  "id": 4242,
+  "name": " Example Online Group Sittings ",
+  "short_description": "Open to all old students",
+  "description": "<p>Sittings on <b>Monday</b> and Thursday at 07:00 and 18:00, one hour.</p><p>Join: <a href=\"https://example.invalid/j/1234\">Example room</a></p>",
+  "url": "/en/example",
+  "schedule": "Mon, Thu",
+  "event_instruction_languages": ["English"],
+  "sub_location": {
+    "name": "Example Host",
+    "description": "An example host record",
+    "url": "https://example.invalid/host",
+    "contact_email": " host@example.invalid ",
+    "city": "Example City",
+    "country_iso_code": "NL",
+    "time_zone": "Europe/Amsterdam"
+  }
+}

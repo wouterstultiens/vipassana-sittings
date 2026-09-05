@@ -5,14 +5,16 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "golden": "tsx pipeline/golden.ts",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "tsc": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json",
-    "test": "vitest run"
+    "golden": "tsx pipeline/golden.ts",
+    "refresh": "tsx --env-file-if-exists=.env pipeline/refresh.ts",
+    "test": "vitest run",
+    "tsc": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
     "@astrojs/react": "^6.0.5",
     "@date-fns/tz": "^1.5.0",
     "@tailwindcss/vite": "^4.3.3",
