@@ -8,3 +8,7 @@ build/
 coverage/
 *.log
 .idea/
+.local/
+
+# Private data repo clone, checked out here by the workflow and by hand
+data/
