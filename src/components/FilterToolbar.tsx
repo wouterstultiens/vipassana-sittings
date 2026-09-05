@@ -18,6 +18,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 // Monday first, the same order as the week grid.
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
+// The filters that hold a list of chosen options, as opposed to the two toggles.
+type ChoiceKey = "weekdays" | "timesOfDay" | "durations" | "languages" | "medium" | "platforms";
+
 const keysOf = <T extends string>(record: Record<T, string>) => Object.keys(record) as T[];
 
 function FilterMenu<T extends string | number>({
@@ -107,9 +110,9 @@ export function FilterToolbar({
   );
 
   const onToggle =
-    <K extends keyof Filters>(key: K) =>
-    (value: Filters[K] extends (infer U)[] ? U : never) =>
-      setFilters((prev) => ({ ...prev, [key]: toggle(prev[key] as unknown[], value) }));
+    <K extends ChoiceKey>(key: K) =>
+    (value: Filters[K][number]) =>
+      setFilters((prev) => ({ ...prev, [key]: toggle<Filters[K][number]>(prev[key], value) }));
 
   const flip = (key: "teacherLed" | "questionsAndAnswers") => () =>
     setFilters((prev) => ({ ...prev, [key]: prev[key] ? null : true }));

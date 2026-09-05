@@ -32,16 +32,15 @@ import { Button } from "@/components/ui/button";
 
 export const DHAMMA_VIRTUAL_URL = "https://www.dhamma.org/en/os/schedules/schgroupsits";
 
-export function ListingBadges({ listing, size = "sm" }: { listing: Listing; size?: "sm" | "xs" }) {
-  const small = size === "xs" ? "text-[10px] px-1 py-0" : "";
+export function ListingBadges({ listing }: { listing: Listing }) {
   return (
     <div className="flex flex-wrap gap-1">
-      <Badge variant="secondary" className={small}>{PLATFORM_LABEL[listing.platform]}</Badge>
-      <Badge variant="outline" className={small}>{MEDIUM_LABEL[listing.medium]}</Badge>
-      {listing.teacherLed && <Badge className={small}>Teacher led</Badge>}
-      {listing.questionsAndAnswers && <Badge variant="outline" className={small}>Q&amp;A</Badge>}
+      <Badge variant="secondary">{PLATFORM_LABEL[listing.platform]}</Badge>
+      <Badge variant="outline">{MEDIUM_LABEL[listing.medium]}</Badge>
+      {listing.teacherLed && <Badge>Teacher led</Badge>}
+      {listing.questionsAndAnswers && <Badge variant="outline">Q&amp;A</Badge>}
       {listing.languages.map((code) => (
-        <Badge key={code} variant="secondary" className={small}>{languageName(code)}</Badge>
+        <Badge key={code} variant="secondary">{languageName(code)}</Badge>
       ))}
     </div>
   );
@@ -74,15 +73,9 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function Notice({ compact = false }: { compact?: boolean }) {
+export function Notice() {
   return (
-    <div
-      className={
-        compact
-          ? "flex items-start gap-2 text-xs text-muted-foreground"
-          : "flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
-      }
-    >
+    <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
       <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
       <span>
         Times come from the dhamma.org listing and the host page and may not be up to date. Check
@@ -105,7 +98,10 @@ export function SittingDetails({
 }) {
   // A rule can carry its own room, so the join details follow the sitting.
   const join = joinFor(listing, sitting?.rule);
-  const hostZone = listing.scheduleRules[0]?.timeZone;
+  // Only one note when every rule keeps the same zone. Rules in different
+  // zones carry their own abbreviation on their own row.
+  const zones = new Set(listing.scheduleRules.map((rule) => rule.timeZone));
+  const hostZone = zones.size === 1 ? [...zones][0] : null;
   const hostPage = listing.hostPageUrl ?? listing.host.url;
   const password = join.password;
 
@@ -244,7 +240,7 @@ export function SittingDetails({
             size="sm"
             onClick={() => window.open(DHAMMA_VIRTUAL_URL, "_blank", "noopener")}
           >
-            dhamma.org listing <ExternalLinkIcon />
+            dhamma.org virtual sittings <ExternalLinkIcon />
           </Button>
         </div>
       </section>
