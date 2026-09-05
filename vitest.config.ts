@@ -1,8 +1,20 @@
 import { fileURLToPath } from "node:url";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
 import { defineConfig } from "vitest/config";
 
+// Two runtimes, one command. The site's logic is plain Node; the gate runs on
+// workerd, where `crypto.subtle.timingSafeEqual` exists.
 export default defineConfig({
-  resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+  test: {
+    projects: [
+      {
+        test: { name: "site", include: ["src/**/*.test.ts"] },
+        resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+      },
+      {
+        plugins: [cloudflareTest({ miniflare: { compatibilityDate: "2026-08-22" } })],
+        test: { name: "gate", include: ["worker/**/*.test.ts"] },
+      },
+    ],
   },
 });
