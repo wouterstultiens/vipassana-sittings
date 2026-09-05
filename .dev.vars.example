@@ -1,0 +1,4 @@
+# Copy to `.dev.vars` and fill in, for `wrangler dev`. `.dev.vars` is never committed.
+LOGIN_USER=
+LOGIN_PASS=
+COOKIE_SECRET=

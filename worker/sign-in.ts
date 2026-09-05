@@ -1,21 +1,25 @@
 const encoder = new TextEncoder();
 
-export const SESSION_COOKIE = "session";
+/**
+ * The name of the cookie that holds the sign-in. It is `session` on the wire,
+ * where it is a browser word and not the domain word for a sitting.
+ */
+export const SIGN_IN_COOKIE = "session";
 
-/** One year, the lifetime of a session cookie. */
-export const SESSION_LIFETIME_MS = 365 * 24 * 60 * 60 * 1000;
+/** One year, the lifetime of a sign-in. */
+export const SIGN_IN_LIFETIME_MS = 365 * 24 * 60 * 60 * 1000;
 
 /**
  * The cookie value is `<expiry>.<hmac>`: the expiry timestamp in milliseconds,
  * signed with HMAC-SHA256 and the cookie secret.
  */
-export async function createSession(secret: string, now: number): Promise<string> {
-  const expiry = String(now + SESSION_LIFETIME_MS);
+export async function createSignIn(secret: string, now: number): Promise<string> {
+  const expiry = String(now + SIGN_IN_LIFETIME_MS);
   const signature = await crypto.subtle.sign("HMAC", await signingKey(secret), encoder.encode(expiry));
   return `${expiry}.${toHex(signature)}`;
 }
 
-export async function isSessionValid(secret: string, value: string, now: number): Promise<boolean> {
+export async function isSignInValid(secret: string, value: string, now: number): Promise<boolean> {
   const separator = value.indexOf(".");
   if (separator < 0) return false;
 

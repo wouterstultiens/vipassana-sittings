@@ -1,4 +1,4 @@
-import { createSession, isSessionValid, SESSION_COOKIE, SESSION_LIFETIME_MS } from "./session.ts";
+import { createSignIn, isSignInValid, SIGN_IN_COOKIE, SIGN_IN_LIFETIME_MS } from "./sign-in.ts";
 
 export interface GateSecrets {
   LOGIN_USER: string;
@@ -19,31 +19,43 @@ export async function gate(request: Request, secrets: GateSecrets, now: number):
     return request.method === "POST" ? logIn(request, secrets, now) : null;
   }
 
-  return (await hasSession(request, secrets.COOKIE_SECRET, now)) ? null : seeOther("/login");
+  return (await hasSignIn(request, secrets.COOKIE_SECRET, now)) ? null : seeOther("/login");
 }
 
 async function logIn(request: Request, secrets: GateSecrets, now: number): Promise<Response> {
-  const form = await request.formData();
-  const user = form.get("user");
-  const password = form.get("password");
+  const form = await readForm(request);
 
-  // Both comparisons always run, so a wrong user takes as long as a wrong password.
-  const userMatches = await secretEquals(typeof user === "string" ? user : "", secrets.LOGIN_USER);
-  const passwordMatches = await secretEquals(typeof password === "string" ? password : "", secrets.LOGIN_PASS);
-  if (!userMatches || !passwordMatches) return seeOther("/login?failed=1");
+  // Both comparisons always run, so a wrong name takes as long as a wrong password.
+  const nameMatches = await secretEquals(field(form, "user"), secrets.LOGIN_USER);
+  const passwordMatches = await secretEquals(field(form, "password"), secrets.LOGIN_PASS);
+  if (!nameMatches || !passwordMatches) return seeOther("/login?failed=1");
 
-  const session = await createSession(secrets.COOKIE_SECRET, now);
+  const signIn = await createSignIn(secrets.COOKIE_SECRET, now);
   const response = seeOther("/");
   response.headers.set(
     "Set-Cookie",
-    `${SESSION_COOKIE}=${session}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_LIFETIME_MS / 1000}`,
+    `${SIGN_IN_COOKIE}=${signIn}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SIGN_IN_LIFETIME_MS / 1000}`,
   );
   return response;
 }
 
-async function hasSession(request: Request, secret: string, now: number): Promise<boolean> {
-  const value = readCookie(request.headers.get("Cookie"), SESSION_COOKIE);
-  return value !== null && (await isSessionValid(secret, value, now));
+function field(form: FormData, name: string): string {
+  const value = form.get(name);
+  return typeof value === "string" ? value : "";
+}
+
+/** A body that is not a form is an empty form, and thus a failed sign-in. */
+async function readForm(request: Request): Promise<FormData> {
+  try {
+    return await request.formData();
+  } catch {
+    return new FormData();
+  }
+}
+
+async function hasSignIn(request: Request, secret: string, now: number): Promise<boolean> {
+  const value = readCookie(request.headers.get("Cookie"), SIGN_IN_COOKIE);
+  return value !== null && (await isSignInValid(secret, value, now));
 }
 
 function readCookie(header: string | null, name: string): string | null {
@@ -58,13 +70,13 @@ function readCookie(header: string | null, name: string): string | null {
 }
 
 /** Compares two secrets in constant time. The digests make the lengths equal. */
-async function secretEquals(a: string, b: string): Promise<boolean> {
+async function secretEquals(given: string, expected: string): Promise<boolean> {
   const encoder = new TextEncoder();
-  const [digestA, digestB] = await Promise.all([
-    crypto.subtle.digest("SHA-256", encoder.encode(a)),
-    crypto.subtle.digest("SHA-256", encoder.encode(b)),
+  const [digestGiven, digestExpected] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(given)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected)),
   ]);
-  return crypto.subtle.timingSafeEqual(digestA, digestB);
+  return crypto.subtle.timingSafeEqual(digestGiven, digestExpected);
 }
 
 function seeOther(location: string): Response {

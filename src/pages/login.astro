@@ -1,8 +1,8 @@
 ---
-// The gate serves this page to every request without a valid session cookie.
+// The gate serves this page to every request without a valid sign-in cookie.
 // It inlines its CSS and its script, so it needs no file from `/_astro/`, which
-// the gate never serves. The site is static, so the failure message is shown by
-// the browser and not at build time.
+// the gate never serves. The site is static, so the script shows the failure
+// message in the browser.
 ---
 
 <!doctype html>
@@ -110,7 +110,7 @@
       <form method="post" action="/login">
         <p class="error" id="error" hidden>The user or the password is wrong.</p>
         <label>
-          User
+          Old student
           <input type="text" name="user" autocomplete="username" autocapitalize="none" autofocus required />
         </label>
         <label>
