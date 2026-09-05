@@ -15,4 +15,8 @@ describe("the hand-kept lists", () => {
       expect(typeof page.basicAuth).toBe("boolean");
     }
   });
+
+  it("never excludes a listing that also has a host page", () => {
+    for (const id of hostPages.keys()) expect(excludedIds.has(id)).toBe(false);
+  });
 });

@@ -36,6 +36,16 @@ describe("apiHash", () => {
     expect(apiHash(changed)).not.toBe(apiHash(listing()));
   });
 
+  it("does not confuse two listings that swap two field values", () => {
+    const one = listing();
+    one.name = "first";
+    one.short_description = "second";
+    const other = listing();
+    other.name = "second";
+    other.short_description = "first";
+    expect(apiHash(one)).not.toBe(apiHash(other));
+  });
+
   it("stays put when a field the pipeline never reads changes", () => {
     const changed = listing();
     changed.gmt_offset = "+02:00";

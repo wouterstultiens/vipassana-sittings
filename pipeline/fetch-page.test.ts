@@ -44,6 +44,20 @@ describe("fetchPage", () => {
     await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow(/only \d+ characters/);
   });
 
+  it("reports every failure as a PageFetchError", async () => {
+    const failures = [
+      () => answer({ status: 401 }),
+      () => vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("socket hang up"))),
+      () => answer({ url: "https://teams.invalid/meeting" }),
+      () => answer({ url: "https://example.invalid/en/login/" }),
+      () => answer({ body: "<p>Coming soon</p>" }),
+    ];
+    for (const setUp of failures) {
+      setUp();
+      await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow(PageFetchError);
+    }
+  });
+
   it("fails when a basic-auth page has no credentials", async () => {
     answer();
     vi.stubEnv("OLD_STUDENT_USER", "");
