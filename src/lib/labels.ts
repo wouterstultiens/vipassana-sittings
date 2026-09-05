@@ -1,3 +1,4 @@
+// Turns listing data into the short strings the calendar shows.
 import type { Listing } from "@/schema/listing";
 
 const lang = new Intl.DisplayNames(["en"], { type: "language" });
@@ -62,8 +63,24 @@ export function fmtDuration(min: number): string {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
-export function fmtTime(d: Date, zone: string): string {
-  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: zone }).format(d);
+const format = (opts: Intl.DateTimeFormatOptions) => (d: Date, zone: string) =>
+  new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone }).format(d);
+
+export const fmtTime = format({ hour: "2-digit", minute: "2-digit" });
+export const fmtWeekday = format({ weekday: "short" });
+export const fmtDayOfMonth = format({ day: "numeric" });
+export const fmtDayMonth = format({ day: "numeric", month: "short" });
+export const fmtDayMonthYear = format({ day: "numeric", month: "short", year: "numeric" });
+
+const FRACTION: Record<number, string> = { 15: "¼", 30: "½", 45: "¾" };
+
+/** The tag a sitting longer than 90 minutes carries on the grid, such as "3½ h". */
+export function durationTag(min: number): string | null {
+  if (min <= 90) return null;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (m === 0) return `${h} h`;
+  return FRACTION[m] ? `${h}${FRACTION[m]} h` : `${h} h ${m} min`;
 }
 
 export function fmtDate(d: Date, zone: string, opts: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }): string {

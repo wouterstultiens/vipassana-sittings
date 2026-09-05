@@ -1,6 +1,6 @@
 // Expands schedule rules into concrete sittings for a date range, seen from
-// the visitor's timezone. Wall clock is built in the rule's own IANA zone, so
-// daylight saving is handled per rule.
+// the old student's timezone. Wall clock is built in the rule's own IANA zone,
+// so daylight saving is handled per rule.
 import { TZDate } from "@date-fns/tz";
 import { addDays, differenceInCalendarDays, getDaysInMonth } from "date-fns";
 import type { Listing, ScheduleRule } from "@/schema/listing";
@@ -11,10 +11,13 @@ export type Sitting = {
   rule: ScheduleRule;
   start: Date; // instant
   end: Date; // instant
-  local: TZDate; // start in the visitor's zone
-  minutesFromMidnight: number; // in visitor zone
+  local: TZDate; // start in the old student's zone
+  minutesFromMidnight: number; // in the old student's zone
   crossesMidnight: boolean; // end falls on the next local day
 };
+
+/** How far ahead of the current week the old student can walk. */
+export const WEEKS_AHEAD = 8;
 
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
@@ -27,7 +30,7 @@ function matchesWeekOfMonth(rule: ScheduleRule, d: TZDate): boolean {
 }
 
 /** All sittings whose start falls in [from, to). */
-export function expandSittings(listings: Listing[], from: Date, to: Date, viewerZone: string): Sitting[] {
+export function expandSittings(listings: Listing[], from: Date, to: Date, zone: string): Sitting[] {
   const out: Sitting[] = [];
   const days = differenceInCalendarDays(to, from) + 3;
   for (const listing of listings) {
@@ -43,8 +46,8 @@ export function expandSittings(listings: Listing[], from: Date, to: Date, viewer
         const start = new TZDate(inZone.getFullYear(), inZone.getMonth(), inZone.getDate(), hh, mm, rule.timeZone);
         if (start.getTime() < from.getTime() || start.getTime() >= to.getTime()) continue;
         const end = new Date(start.getTime() + rule.durationMinutes * 60_000);
-        const local = new TZDate(start.getTime(), viewerZone);
-        const localEnd = new TZDate(end.getTime(), viewerZone);
+        const local = new TZDate(start.getTime(), zone);
+        const localEnd = new TZDate(end.getTime(), zone);
         out.push({
           key: `${listing.id}-${ri}-${start.getTime()}`,
           listing,
@@ -61,28 +64,21 @@ export function expandSittings(listings: Listing[], from: Date, to: Date, viewer
   return out.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
+/** The grid row a sitting belongs to: the hour it starts in the old student's zone. */
+export const localHour = (s: Sitting): number => Math.floor(s.minutesFromMidnight / 60);
+
+/** The hour an instant falls in on the wall clock of the given zone. */
+export const hourInZone = (d: Date, zone: string): number => new TZDate(d.getTime(), zone).getHours();
+
 /** Midnight at the start of the given local day, as an instant. */
 export function localDayStart(d: Date, zone: string, offsetDays = 0): Date {
   const z = new TZDate(d.getTime(), zone);
   return new Date(new TZDate(z.getFullYear(), z.getMonth(), z.getDate() + offsetDays, 0, 0, zone).getTime());
 }
 
-/** Monday 00:00 of the week holding `d`, in the visitor's zone. */
+/** Monday 00:00 of the week holding `d`, in the old student's zone. */
 export function weekStart(d: Date, zone: string): Date {
   const z = new TZDate(d.getTime(), zone);
   const back = (z.getDay() + 6) % 7;
   return localDayStart(d, zone, -back);
 }
-
-export function visitorZone(): string {
-  if (typeof Intl === "undefined") return "UTC";
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-export const ZONES: string[] = (() => {
-  try {
-    return Intl.supportedValuesOf("timeZone");
-  } catch {
-    return ["UTC"];
-  }
-})();

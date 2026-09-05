@@ -7,7 +7,6 @@ import {
   ExternalLinkIcon,
   MailIcon,
   PhoneIcon,
-  TriangleAlertIcon,
   VideoIcon,
 } from "lucide-react";
 import type { Listing } from "@/schema/listing";
@@ -27,24 +26,11 @@ import {
   ruleDays,
   zoneAbbr,
 } from "@/lib/labels";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ListingBadges } from "@/components/ListingBadges";
+import { Notice } from "@/components/Notice";
 
 export const DHAMMA_VIRTUAL_URL = "https://www.dhamma.org/en/os/schedules/schgroupsits";
-
-export function ListingBadges({ listing }: { listing: Listing }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      <Badge variant="secondary">{PLATFORM_LABEL[listing.platform]}</Badge>
-      <Badge variant="outline">{MEDIUM_LABEL[listing.medium]}</Badge>
-      {listing.teacherLed && <Badge>Teacher led</Badge>}
-      {listing.questionsAndAnswers && <Badge variant="outline">Q&amp;A</Badge>}
-      {listing.languages.map((code) => (
-        <Badge key={code} variant="secondary">{languageName(code)}</Badge>
-      ))}
-    </div>
-  );
-}
 
 function Copy({ text }: { text: string }) {
   const [done, setDone] = React.useState(false);
@@ -69,18 +55,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="grid grid-cols-[7rem_1fr] items-start gap-2 text-sm">
       <div className="text-muted-foreground">{label}</div>
       <div className="min-w-0 break-words">{children}</div>
-    </div>
-  );
-}
-
-export function Notice() {
-  return (
-    <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-      <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
-      <span>
-        Times come from the dhamma.org listing and the host page and may not be up to date. Check
-        the host page before you join.
-      </span>
     </div>
   );
 }
