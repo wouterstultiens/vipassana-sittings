@@ -18,27 +18,6 @@ const nonemptyString = (s: string) => s.length > 0;
 const isUrl = (s: string) => URL.canParse(s) && /^https?:$/.test(new URL(s).protocol);
 const isIsoDateTime = (s: string) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(s);
 
-export const Weekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
-export const WeekOfMonth = z.union([
-  z.literal(1),
-  z.literal(2),
-  z.literal(3),
-  z.literal(4),
-  z.literal(5),
-  z.literal(-1),
-]);
-
-export const ScheduleRule = z.object({
-  weekdays: z.array(Weekday).refine(nonempty),
-  weeksOfMonth: z.array(WeekOfMonth).refine(nonempty).nullable(),
-  start: z.string().refine((s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s)),
-  durationMinutes: z.number().int().refine((n) => n > 0),
-  timeZone: z.string().refine(isTimeZone),
-  label: z.string().refine((s) => s.length > 0 && s.length <= 60).nullable(),
-});
-
-export const Medium = z.enum(["video", "audio", "stream"]);
-
 export const Platform = z.enum([
   "zoom",
   "teams",
@@ -51,6 +30,8 @@ export const Platform = z.enum([
   "website",
   "unknown",
 ]);
+
+export const Medium = z.enum(["video", "audio", "stream"]);
 
 export const Password = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("none") }),
@@ -68,6 +49,28 @@ export const Join = z.object({
   meetingId: z.string().nullable(),
   password: Password,
   dialIn: DialIn.nullable(),
+});
+
+export const Weekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+export const WeekOfMonth = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+  z.literal(-1),
+]);
+
+export const ScheduleRule = z.object({
+  weekdays: z.array(Weekday).refine(nonempty),
+  weeksOfMonth: z.array(WeekOfMonth).refine(nonempty).nullable(),
+  start: z.string().refine((s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s)),
+  durationMinutes: z.number().int().refine((n) => n > 0),
+  timeZone: z.string().refine(isTimeZone),
+  label: z.string().refine((s) => s.length > 0 && s.length <= 60).nullable(),
+  // Join details for this rule's sittings when they differ from the listing's.
+  // Null means "same as the listing".
+  join: Join.nullable(),
 });
 
 // What the LLM returns. Sent to the Claude API via zodOutputFormat.
@@ -101,6 +104,7 @@ export const Listing = ListingExtraction.extend({
   extractedAt: z.string().refine(isIsoDateTime),
 });
 
+export type Join = z.infer<typeof Join>;
 export type ScheduleRule = z.infer<typeof ScheduleRule>;
 export type ListingExtraction = z.infer<typeof ListingExtraction>;
 export type Listing = z.infer<typeof Listing>;

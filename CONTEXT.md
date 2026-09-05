@@ -21,7 +21,7 @@ A recurrence extracted from a listing: which weekdays, which weeks of the month 
 _Avoid_: schedule, recurrence, RRULE
 
 **Join details**:
-What an old student needs to enter a sitting: the join link, the meeting id, the password, and the dial-in numbers. Always extracted from the listing, never written by hand.
+What an old student needs to enter a sitting: the join link, the meeting id, the password, and the dial-in numbers. A listing has one set of join details. A schedule rule carries its own set when its sittings use a different room or link. Always extracted from the listing, never written by hand.
 _Avoid_: credentials, access info, connection details
 
 **Platform**:
