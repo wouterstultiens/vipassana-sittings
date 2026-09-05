@@ -2,7 +2,7 @@ import type { Listing } from "../src/schema/listing.ts";
 
 const CUT = 120;
 
-const show = (value: unknown) => {
+const preview = (value: unknown) => {
   const text = JSON.stringify(value) ?? "undefined";
   return text.length <= CUT ? text : text.slice(0, CUT) + "…";
 };
@@ -14,5 +14,5 @@ export function diffFields(before: Listing, after: Listing): string[] {
   return keys
     .filter((key) => key !== "extractedAt")
     .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
-    .map((key) => `${key}: ${show(before[key])} -> ${show(after[key])}`);
+    .map((key) => `${key}: ${preview(before[key])} -> ${preview(after[key])}`);
 }

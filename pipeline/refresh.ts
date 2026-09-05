@@ -5,7 +5,8 @@
 // listing keeps its previous file and fails the run at the end.
 //
 // Usage: pnpm refresh [--dry-run] [--all]
-//   --dry-run  print the plan and the diff, write nothing
+//   --dry-run  print the plan and the diff, write nothing. A listing whose
+//              hashes moved is still extracted, because the diff needs it.
 //   --all      re-extract every listing, whatever the hashes say
 
 import { appendFileSync } from "node:fs";
@@ -35,16 +36,30 @@ async function fetchApi(): Promise<ApiListing[]> {
   return body as ApiListing[];
 }
 
-const api = await fetchApi();
+const api = await fetchApi().catch((error: Error) => {
+  console.error(`Nothing was written: ${error.message}`);
+  process.exit(1);
+});
 const apiIds = new Set(api.map((listing) => listing.id));
 const summary = emptySummary();
 
-for (const id of unknownListIds([...excludedIds], [...hostPages.keys()], apiIds)) {
+for (const id of unknownListIds({
+  excludedIds: [...excludedIds],
+  hostPageIds: [...hostPages.keys()],
+  apiIds,
+})) {
   summary.warnings.push(`id ${id} is on a hand-kept list but not in the API`);
 }
 
 const ask = claudeAsk();
 const plan: string[] = [];
+const filed = new Set(storedIds());
+
+// The run summary names every listing the calendar cannot place, whether it
+// was extracted again this run or kept as it was.
+const noteWithoutRule = (listing: { id: number; scheduleRules: unknown[] } | null) => {
+  if (listing !== null && listing.scheduleRules.length === 0) summary.withoutRule.push(listing.id);
+};
 
 for (const listing of api) {
   const { id } = listing;
@@ -58,20 +73,20 @@ for (const listing of api) {
       pageText = await fetchPage(page.url, page.basicAuth);
     } catch (error) {
       summary.failed.push({ id, reason: `host page: ${(error as Error).message}` });
-      if (stored?.scheduleRules.length === 0) summary.withoutRule.push(id);
+      noteWithoutRule(stored);
       continue;
     }
   }
   const pageHash = pageText === null ? null : hashText(pageText);
 
   if (!needsExtraction({ stored, apiHash: apiHash(listing), pageHash, all })) {
-    if (stored!.scheduleRules.length === 0) summary.withoutRule.push(id);
+    noteWithoutRule(stored);
     continue;
   }
 
-  let record;
+  let extracted;
   try {
-    record = buildListing({
+    extracted = buildListing({
       api: listing,
       extraction: await extractListing(ask, listing, pageText),
       hostPageUrl: page?.url ?? null,
@@ -80,30 +95,35 @@ for (const listing of api) {
     });
   } catch (error) {
     summary.failed.push({ id, reason: `extraction: ${(error as Error).message}` });
-    if (stored?.scheduleRules.length === 0) summary.withoutRule.push(id);
+    noteWithoutRule(stored);
     continue;
   }
 
-  if (stored === null) {
+  if (stored === null && !filed.has(id)) {
     summary.added.push(id);
     plan.push(`${id}: added`);
+  } else if (stored === null) {
+    // The file is there but no longer fits the schema, so it counts as changed.
+    summary.changed.push(id);
+    summary.warnings.push(`id ${id} had a file that no longer fits the schema, extracted again`);
+    plan.push(`${id}: changed, the stored file no longer fits the schema`);
   } else {
     summary.changed.push(id);
-    plan.push(`${id}: changed`, ...diffFields(stored, record).map((line) => `  ${line}`));
+    plan.push(`${id}: changed`, ...diffFields(stored, extracted).map((line) => `  ${line}`));
   }
-  if (record.scheduleRules.length === 0) summary.withoutRule.push(id);
-  if (!dryRun) writeStored(record);
+  noteWithoutRule(extracted);
+  if (!dryRun) writeStored(extracted);
 }
 
-for (const id of removedIds(storedIds(), apiIds, excludedIds)) {
+// An excluded id loses its file too: the data repo holds only what the site shows.
+for (const id of removedIds({ storedIds: [...filed], apiIds, excludedIds })) {
   summary.removed.push(id);
   plan.push(`${id}: removed`);
   if (!dryRun) deleteStored(id);
 }
 
-summary.withoutRule.sort((a, b) => a - b);
 const report = (dryRun ? "Dry run, nothing written.\n\n" : "") + formatSummary(summary);
-console.log(plan.length > 0 ? plan.join("\n") + "\n" : "");
+if (plan.length > 0) console.log(plan.join("\n") + "\n");
 console.log(report);
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
 if (summary.failed.length > 0) process.exit(1);

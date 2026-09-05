@@ -44,20 +44,22 @@ describe("needsExtraction", () => {
 
 describe("removedIds", () => {
   it("drops a stored id the api no longer returns", () => {
-    expect(removedIds([1, 2, 3], new Set([1, 3]), new Set())).toEqual([2]);
+    expect(removedIds({ storedIds: [1, 2, 3], apiIds: new Set([1, 3]), excludedIds: new Set() })).toEqual([2]);
   });
 
   it("drops a stored id that is excluded, even when the api still returns it", () => {
-    expect(removedIds([1, 2], new Set([1, 2]), new Set([2]))).toEqual([2]);
+    expect(removedIds({ storedIds: [1, 2], apiIds: new Set([1, 2]), excludedIds: new Set([2]) })).toEqual([2]);
   });
 
   it("keeps every stored id when nothing vanished", () => {
-    expect(removedIds([1, 2], new Set([1, 2]), new Set())).toEqual([]);
+    expect(removedIds({ storedIds: [1, 2], apiIds: new Set([1, 2]), excludedIds: new Set() })).toEqual([]);
   });
 });
 
 describe("unknownListIds", () => {
   it("names hand-kept ids the api does not return", () => {
-    expect(unknownListIds([9, 1], [8, 2], new Set([1, 2]))).toEqual([9, 8]);
+    expect(
+      unknownListIds({ excludedIds: [9, 1], hostPageIds: [8, 2], apiIds: new Set([1, 2]) }),
+    ).toEqual([9, 8]);
   });
 });

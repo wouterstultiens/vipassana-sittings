@@ -22,7 +22,9 @@ export const emptySummary = (): RunSummary => ({
 const section = (title: string, lines: string[]) =>
   lines.length === 0 ? [] : [`### ${title}`, ...lines, ""];
 
-const ids = (title: string, list: number[]) => section(title, list.length === 0 ? [] : [list.join(", ")]);
+// Ids read best in order, whatever order the run collected them in.
+const ids = (title: string, list: number[]) =>
+  section(title, list.length === 0 ? [] : [[...list].sort((a, b) => a - b).join(", ")]);
 
 // Markdown, so the same text reads well on stdout and in GITHUB_STEP_SUMMARY.
 export function formatSummary(summary: RunSummary): string {
