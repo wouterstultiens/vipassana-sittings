@@ -10,5 +10,7 @@ coverage/
 .idea/
 .local/
 
+.astro/
+
 # Private data repo clone, checked out here by the workflow and by hand
 data/
