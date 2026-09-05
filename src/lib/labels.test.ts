@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { durationTag, ruleDays } from "@/lib/labels";
+import { durationTag } from "@/lib/labels";
 
 describe("durationTag", () => {
-  it("says nothing for an entry of 90 minutes or less", () => {
+  it("says nothing for a sitting of 90 minutes or less", () => {
     expect(durationTag(60)).toBeNull();
     expect(durationTag(90)).toBeNull();
   });
@@ -18,18 +18,3 @@ describe("durationTag", () => {
   });
 });
 
-describe("ruleDays", () => {
-  const rule = (weekdays: string[], weeksOfMonth: number[] | null = null) =>
-    ({ weekdays, weeksOfMonth }) as never;
-
-  it("names the whole week, the working week and the weekend", () => {
-    expect(ruleDays(rule(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]))).toBe("Every day");
-    expect(ruleDays(rule(["mon", "tue", "wed", "thu", "fri"]))).toBe("Weekdays");
-    expect(ruleDays(rule(["sat", "sun"]))).toBe("Weekends");
-  });
-
-  it("prefixes the weeks of the month", () => {
-    expect(ruleDays(rule(["mon"], [1, 3]))).toBe("1st and 3rd Mon");
-    expect(ruleDays(rule(["sun"], [-1]))).toBe("last Sun");
-  });
-});

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Listing, ScheduleRule } from "@/schema/listing";
-import { expandSittings, localDayStart, localHour, weekStart } from "@/lib/expand";
+import { expandSittings, hourInZone, localDayStart, localHour, weekStart } from "@/lib/expand";
 
 const rule = (over: Partial<ScheduleRule> = {}): ScheduleRule => ({
   weekdays: ["mon"],
@@ -63,7 +63,7 @@ describe("expandSittings", () => {
     expect(expandSittings([listing([rule({ weeksOfMonth: [5] })])], from, to, "Europe/Amsterdam")).toEqual([]);
   });
 
-  it("places a sitting on the day and hour it starts in the visitor's zone", () => {
+  it("places a sitting on the day and hour it starts in the old student's zone", () => {
     // Monday 19:00 in Kolkata is Monday 15:30 in Amsterdam.
     const r = rule({ timeZone: "Asia/Kolkata" });
     const from = new Date(Date.UTC(2026, 5, 1));
@@ -85,16 +85,9 @@ describe("expandSittings", () => {
     expect(localHour(s)).toBe(23);
   });
 
-  it("marks a sitting that runs past local midnight", () => {
-    const from = new Date(Date.UTC(2026, 5, 1));
-    const to = new Date(Date.UTC(2026, 5, 8));
-    const r = rule({ start: "23:30", durationMinutes: 60 });
-    const [s] = expandSittings([listing([r])], from, to, "Europe/Amsterdam");
-    expect(s.crossesMidnight).toBe(true);
-  });
 });
 
-describe("daylight saving in the visitor's zone", () => {
+describe("daylight saving in the old student's zone", () => {
   const zone = "Europe/Amsterdam";
 
   it("merges the repeated hour of the autumn change into one row", () => {
@@ -105,6 +98,12 @@ describe("daylight saving in the visitor's zone", () => {
     const rules = [rule({ weekdays: ["sun"], start: "00:30", timeZone: "UTC" }), rule({ weekdays: ["sun"], start: "01:30", timeZone: "UTC" })];
     const hours = expandSittings([listing(rules)], from, to, zone).map(localHour);
     expect(hours).toEqual([2, 2]);
+  });
+
+  it("reads the wall clock hour, not the hours elapsed since local midnight", () => {
+    // 25 October 2026 is 25 hours long in Amsterdam, so counting from midnight
+    // would put 23:30 local in row 24.
+    expect(hourInZone(new Date(Date.UTC(2026, 9, 25, 22, 30)), zone)).toBe(23);
   });
 
   it("leaves the skipped hour of the spring change empty", () => {

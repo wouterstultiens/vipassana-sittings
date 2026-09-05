@@ -1,23 +1,21 @@
-// The calendar: a Monday-to-Sunday grid with one row per hour of the visitor's
-// day. Each cell holds the sittings that start in that hour. Listings without a
-// schedule rule sit under the grid. Filters and the detail panel come later.
+// The calendar: a Monday-to-Sunday grid with one row per hour of the old
+// student's day. Each cell holds the sittings that start in that hour. Listings
+// without a schedule rule sit under the grid. Filters and the detail panel come
+// later.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
-import { expandSittings, localDayStart, localHour, visitorZone, weekStart, WEEKS_AHEAD, ZONES, type Sitting } from "@/lib/expand";
-import { displayHost, durationTag, flag, fmtTime } from "@/lib/labels";
+import { expandSittings, hourInZone, localDayStart, localHour, weekStart, WEEKS_AHEAD, type Sitting } from "@/lib/expand";
+import { displayHost, durationTag, flag, fmtDayMonth, fmtDayMonthYear, fmtDayOfMonth, fmtTime, fmtWeekday } from "@/lib/labels";
 import { ListingBadges } from "@/components/ListingBadges";
 import { Notice } from "@/components/Notice";
-import { ZoneSelect } from "@/components/ZoneSelect";
+import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
 import { Button } from "@/components/ui/button";
 
 const PER_CELL = 3;
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
-const dayLabel = (d: Date, zone: string, weekday: Intl.DateTimeFormatOptions["weekday"]) =>
-  new Intl.DateTimeFormat("en-GB", { weekday, timeZone: zone }).format(d);
-
-function SittingEntry({ sitting, zone, past }: { sitting: Sitting; zone: string; past: boolean }) {
+function GridSitting({ sitting, zone, past }: { sitting: Sitting; zone: string; past: boolean }) {
   const tag = durationTag(sitting.rule.durationMinutes);
   return (
     <div
@@ -36,10 +34,11 @@ function SittingEntry({ sitting, zone, past }: { sitting: Sitting; zone: string;
 }
 
 export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: string }) {
-  // The server render knows neither the visitor's zone nor the current time, so
-  // it draws the build-time week in UTC and the browser corrects it on mount.
+  // The server render knows neither the old student's zone nor the current
+  // time, so it draws the build-time week in UTC and the browser corrects it on
+  // mount.
   const [view, setView] = React.useState(() => ({ zone: "UTC", now: new Date(builtAt) }));
-  React.useEffect(() => setView({ zone: visitorZone(), now: new Date() }), []);
+  React.useEffect(() => setView({ zone: oldStudentZone(), now: new Date() }), []);
   const { zone, now } = view;
 
   const [weeksAhead, setWeeksAhead] = React.useState(0);
@@ -55,6 +54,7 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const byDay = days.map((d, i) => sittings.filter((s) => s.start >= d && s.start < dayEnd(i)));
   const withoutFixedTime = listings.filter((l) => l.scheduleRules.length === 0);
   const todayIdx = days.findIndex((d, i) => now >= d && now < dayEnd(i));
+  const nowHour = hourInZone(now, zone);
 
   return (
     <div className="mx-auto flex h-screen max-w-[1400px] flex-col">
@@ -65,7 +65,7 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Times in</span>
-          <ZoneSelect value={zone} onChange={(z) => setView((v) => ({ ...v, zone: z }))} zones={ZONES} />
+          <ZoneSelect value={zone} onChange={(z) => setView((v) => ({ ...v, zone: z }))} />
         </div>
       </header>
 
@@ -92,10 +92,8 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
           <ChevronRightIcon />
         </Button>
         <span className="ml-1 text-sm font-medium tabular-nums">
-          {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: zone }).format(from)} –{" "}
-          {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: zone }).format(days[6])}
+          {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
         </span>
-        <span className="ml-auto text-xs text-muted-foreground">{sittings.length} sittings this week</span>
       </div>
 
       <div className="px-4 pt-2">
@@ -110,9 +108,9 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
               key={i}
               className={`sticky top-0 z-10 border-b bg-background py-1.5 text-center text-sm ${i === todayIdx ? "font-semibold text-primary" : ""}`}
             >
-              {dayLabel(d, zone, "short")}{" "}
+              {fmtWeekday(d, zone)}{" "}
               <span className={i === todayIdx ? "rounded-full bg-primary px-1.5 text-primary-foreground" : "text-muted-foreground"}>
-                {new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: zone }).format(d)}
+                {fmtDayOfMonth(d, zone)}
               </span>
             </div>
           ))}
@@ -126,16 +124,15 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
                 const key = `${di}-${h}`;
                 const isOpen = expanded.has(key);
                 const shown = isOpen ? cell : cell.slice(0, PER_CELL);
-                const isNowHour = di === todayIdx && Math.floor((now.getTime() - days[di].getTime()) / 3_600_000) === h;
                 return (
                   <div
                     key={di}
                     className={`min-h-6 space-y-0.5 border-t border-l p-0.5 ${di === todayIdx ? "bg-primary/5" : ""} ${
-                      isNowHour ? "border-t-2 border-t-red-500" : ""
+                      di === todayIdx && h === nowHour ? "border-t-2 border-t-red-500" : ""
                     }`}
                   >
                     {shown.map((s) => (
-                      <SittingEntry key={s.key} sitting={s} zone={zone} past={s.end < now} />
+                      <GridSitting key={s.key} sitting={s} zone={zone} past={s.end < now} />
                     ))}
                     {cell.length > PER_CELL && (
                       <button
