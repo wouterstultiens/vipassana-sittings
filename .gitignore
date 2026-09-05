@@ -12,3 +12,6 @@ coverage/
 
 # Private data repo clone, checked out here by the workflow and by hand
 data/
+
+# Astro generated types
+.astro/

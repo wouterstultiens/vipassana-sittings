@@ -1,0 +1,11 @@
+---
+// PROTOTYPE: three variants of the calendar, switchable via ?variant=, on the
+// route the real calendar will use. See src/prototype/README.md.
+import Layout from "../layouts/Layout.astro";
+import { loadListings } from "../prototype/lib/load-listings";
+import { Prototype } from "../prototype/Prototype";
+const listings = loadListings();
+---
+<Layout>
+  <Prototype client:only="react" listings={listings} />
+</Layout>
