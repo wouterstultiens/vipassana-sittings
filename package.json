@@ -5,16 +5,22 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "golden": "tsx pipeline/golden.ts"
+    "golden": "tsx pipeline/golden.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json"
   },
   "dependencies": {
     "html-to-text": "^10.0.1",
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260904.1",
     "@types/html-to-text": "^9.0.4",
     "@types/node": "^26.4.1",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.129.0"
   }
 }
