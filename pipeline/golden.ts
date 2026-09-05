@@ -13,6 +13,7 @@ import { ListingExtraction } from "../src/schema/listing.ts";
 import type { ApiListing } from "./api.ts";
 import { fetchPage } from "./fetch-page.ts";
 import { buildListing } from "./listing.ts";
+import { normalizeText } from "./page-text.ts";
 import { excludedIds, hostPages } from "./lists.ts";
 
 const DATA = "data";
@@ -54,7 +55,9 @@ for (const listing of api) {
     continue;
   }
   const page = hostPages.get(listing.id);
-  const pageText = page ? readFileSync(join(PAGES, `${listing.id}.txt`), "utf8") : null;
+  const pageText = page
+    ? normalizeText(readFileSync(join(PAGES, `${listing.id}.txt`), "utf8"))
+    : null;
   const record = buildListing({
     api: listing,
     extraction: extraction.data,
