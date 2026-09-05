@@ -1,0 +1,58 @@
+name: Deploy
+
+# Builds the site with the private data and deploys the Worker to workers.dev.
+# The weekly refresh of the data is wired in later; `refresh_all` is its switch.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Every Monday at 04:00 UTC. The refresh runs once per week, not daily.
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      refresh_all:
+        description: Refresh every listing, not only the changed ones
+        type: boolean
+        default: false
+
+# Two runs must never deploy at the same time.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out this repo
+        uses: actions/checkout@v5
+
+      - name: Check out the private data repo into data/
+        uses: actions/checkout@v5
+        with:
+          repository: wouterstultiens/vipassana-sittings-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the site
+        run: pnpm build
+
+      - name: Deploy the Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm

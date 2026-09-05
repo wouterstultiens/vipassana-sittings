@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "license": "MIT",
+  "packageManager": "pnpm@11.25.0",
   "scripts": {
     "golden": "tsx pipeline/golden.ts",
     "dev": "astro dev",
