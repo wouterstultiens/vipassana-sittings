@@ -1,0 +1,19 @@
+{
+  "id": 4242,
+  "event_type_code": "VirtualGroupSitting",
+  "name": "  Example Online Group Sittings  ",
+  "short_description": "Open to old students only",
+  "description": "<p>We sit every <strong>Monday</strong> at 07:00.</p><p><a href=\"https://example.org/room\">Join the room</a></p>",
+  "url": "/en/example",
+  "schedule": "Mondays 07:00",
+  "event_instruction_languages": ["English", "Dutch"],
+  "sub_location": {
+    "name": "Dhamma Example",
+    "description": "An old-student group",
+    "url": "https://example.org",
+    "contact_email": " info@example.org ",
+    "city": "Amsterdam",
+    "country_iso_code": "NL",
+    "time_zone": "Europe/Amsterdam"
+  }
+}
