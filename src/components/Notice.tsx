@@ -10,7 +10,7 @@ export function Notice({ compact = false }: { compact?: boolean }) {
       className={
         compact
           ? "flex items-start gap-2 text-xs text-muted-foreground"
-          : "flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+          : "flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
       }
     >
       <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
