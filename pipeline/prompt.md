@@ -24,7 +24,13 @@ on the golden dataset and the pipeline is evaluated against it.
 - A range such as "between 4-8 am" is not a rule. Use the listed starts in the
   description, one rule each.
 - `timeZone` is one IANA zone per rule. Take it from the description, else from
-  the sub-location time zone with the country. Never use `gmt_offset`.
+  the host record time zone with the country. Never use `gmt_offset`.
+- The host record time zone is never an IANA zone. It reads
+  `<country code>, <zone name> (<abbreviation>)`, such as
+  `NL, Central European Time (CET)` or `IL, Israel Standard Time (IST)`. Turn it
+  into the IANA zone of the host's city, such as `Europe/Amsterdam` or
+  `Asia/Jerusalem`. The country code settles an abbreviation that two countries
+  share: `IL, ... (IST)` is Israel, `IN, ... (IST)` is India.
 - `weeksOfMonth` is the nth occurrence of the weekday in the month, `-1` the
   last one. Null means every week.
 - **Default duration**: when a sitting states a start but no end or length,

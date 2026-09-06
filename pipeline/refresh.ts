@@ -54,10 +54,14 @@ const added: number[] = [];
 const failed: Failure[] = [];
 const final = new Map<number, Listing>();
 
-for (const listing of api) {
-  const id = listing.id;
-  if (excludedIds.has(id)) continue;
-  const stored = readStored(LISTINGS_DIR, id);
+// Extracts one listing again when a source changed, or returns null to keep
+// what is already stored. Records why in the counters and the failure list.
+async function refreshOne(
+  api: ApiListing,
+  previous: Listing | null,
+  stored: Listing | "unreadable" | null,
+): Promise<Listing | null> {
+  const id = api.id;
   const page = hostPages.get(id);
 
   let pageText: string | null = null;
@@ -66,49 +70,56 @@ for (const listing of api) {
       pageText = await fetchPage(page.url, page.basicAuth);
     } catch (e) {
       failed.push({ id, reason: `host page fetch failed: ${(e as Error).message}` });
-      if (stored) final.set(id, stored);
-      continue;
+      return null;
     }
   }
 
-  const reason = extractReason({ stored, api: listing, pageText, all });
-  if (reason === null) {
-    if (stored) final.set(id, stored);
-    continue;
-  }
+  const reason = extractReason({ stored, api, pageText, all });
+  if (reason === null) return null;
   console.log(`${id}: ${reason}, extracting`);
 
-  let record: Listing;
+  let listing: Listing;
   try {
-    const extraction = await extract(listing, pageText);
-    record = buildListing({
-      api: listing,
-      extraction,
+    listing = buildListing({
+      api,
+      extraction: await extract(api, pageText),
       hostPageUrl: page?.url ?? null,
       pageText,
       extractedAt: new Date().toISOString(),
     });
   } catch (e) {
     failed.push({ id, reason: `extraction failed: ${(e as Error).message}` });
-    if (stored) final.set(id, stored);
-    continue;
+    return null;
   }
 
+  // An unreadable file was already there, so repairing it is a change.
   if (stored === null) added.push(id);
   else changed.push(id);
-  final.set(id, record);
 
   if (dryRun) {
-    const lines = stored === null ? ["new listing"] : diffExtraction(stored, record);
+    const lines = previous === null ? ["new listing"] : diffExtraction(previous, listing);
     for (const line of lines.length === 0 ? ["only the hashes changed"] : lines) {
       console.log(`  ${line}`);
     }
   } else {
-    writeStored(LISTINGS_DIR, record);
+    writeStored(LISTINGS_DIR, listing);
   }
+  return listing;
 }
 
-const removed = removedIds(storedIds(LISTINGS_DIR), apiIds, excludedIds);
+for (const api_listing of api) {
+  if (excludedIds.has(api_listing.id)) continue;
+  const stored = readStored(LISTINGS_DIR, api_listing.id);
+  if (stored === "unreadable") {
+    warnings.push(`the stored file for id ${api_listing.id} did not fit the schema and was rewritten`);
+  }
+  const previous = stored === "unreadable" ? null : stored;
+  const fresh = await refreshOne(api_listing, previous, stored);
+  const keep = fresh ?? previous;
+  if (keep) final.set(api_listing.id, keep);
+}
+
+const removed = removedIds(storedIds(LISTINGS_DIR), apiIds);
 for (const id of removed) {
   console.log(`${id}: no longer in the API, removing`);
   if (!dryRun) deleteStored(LISTINGS_DIR, id);

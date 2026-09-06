@@ -1,5 +1,5 @@
 // The one LLM call: an API listing, plus its host page text when one is
-// listed, becomes a validated ListingExtraction. Shared by refresh and eval.
+// listed, becomes a validated ListingExtraction.
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { readFileSync } from "node:fs";

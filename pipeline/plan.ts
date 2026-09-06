@@ -4,18 +4,24 @@ import type { Listing } from "../src/schema/listing.ts";
 import type { ApiListing } from "./api.ts";
 import { apiHash, hashText } from "./hash.ts";
 
-export type Reason = "new" | "api changed" | "host page changed" | "re-extract all";
+export type ExtractReason =
+  | "new"
+  | "the stored file is unreadable"
+  | "api changed"
+  | "host page changed"
+  | "re-extract all";
 
 // Why this listing needs a fresh extraction, or null when the stored file
 // still matches both sources.
 export function extractReason(input: {
-  stored: Listing | null;
+  stored: Listing | "unreadable" | null;
   api: ApiListing;
   pageText: string | null;
   all: boolean;
-}): Reason | null {
+}): ExtractReason | null {
   const { stored, api, pageText, all } = input;
   if (stored === null) return "new";
+  if (stored === "unreadable") return "the stored file is unreadable";
   if (all) return "re-extract all";
   if (stored.apiHash !== apiHash(api)) return "api changed";
   const pageHash = pageText === null ? null : hashText(pageText);
@@ -23,14 +29,11 @@ export function extractReason(input: {
   return null;
 }
 
-// Stored files the run deletes: listings the API no longer returns, and
-// listings that reached the exclusion list after they were written.
-export function removedIds(
-  stored: Iterable<number>,
-  apiIds: ReadonlySet<number>,
-  excludedIds: ReadonlySet<number>,
-): number[] {
-  return [...stored].filter((id) => !apiIds.has(id) || excludedIds.has(id)).sort((a, b) => a - b);
+// Stored files the run deletes: the listings the API no longer returns. An
+// excluded listing keeps its stale file, because the build reads the exclusion
+// list too and never lets it reach the site.
+export function removedIds(stored: Iterable<number>, apiIds: ReadonlySet<number>): number[] {
+  return [...stored].filter((id) => !apiIds.has(id)).sort((a, b) => a - b);
 }
 
 // Ids on a hand-kept list that the API no longer returns. A warning, no failure.

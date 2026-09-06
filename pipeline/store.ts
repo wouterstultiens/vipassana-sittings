@@ -16,15 +16,16 @@ export function storedIds(dir: string): number[] {
 
 const path = (dir: string, id: number) => join(dir, `${id}.json`);
 
-// The stored record, or null when the file is missing or no longer valid. An
-// invalid file is treated as missing, so the run repairs it.
-export function readStored(dir: string, id: number): Listing | null {
+// The stored listing, null when there is no file, or "unreadable" when the
+// file is there but no longer fits the schema. The run cannot compare hashes
+// with an unreadable file, so it extracts again and says so.
+export function readStored(dir: string, id: number): Listing | "unreadable" | null {
   const file = path(dir, id);
   if (!existsSync(file)) return null;
   try {
     return Listing.parse(JSON.parse(readFileSync(file, "utf8")));
   } catch {
-    return null;
+    return "unreadable";
   }
 }
 

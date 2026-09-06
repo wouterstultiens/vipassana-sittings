@@ -1,4 +1,4 @@
-// A field-by-field diff of two extractions, for the dry run and for the eval.
+// A field-by-field diff of two extractions, for the dry run.
 import { ListingExtraction } from "../src/schema/listing.ts";
 
 const FIELDS = Object.keys(ListingExtraction.shape) as (keyof ListingExtraction)[];
