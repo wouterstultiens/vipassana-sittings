@@ -5,7 +5,6 @@ import {
   EMPTY_FILTERS,
   listingMatches,
   sittingMatches,
-  timeOfDay,
   toggle,
   type Filters,
 } from "@/lib/filters";
@@ -13,19 +12,6 @@ import { expandSittings } from "@/lib/expand";
 import { aListing, aRule } from "@/test/fixtures";
 
 const withFilters = (over: Partial<Filters>): Filters => ({ ...EMPTY_FILTERS, ...over });
-
-describe("timeOfDay", () => {
-  it("splits the day into four bands of six hours", () => {
-    expect(timeOfDay(0)).toBe("night");
-    expect(timeOfDay(5 * 60 + 59)).toBe("night");
-    expect(timeOfDay(6 * 60)).toBe("morning");
-    expect(timeOfDay(11 * 60 + 59)).toBe("morning");
-    expect(timeOfDay(12 * 60)).toBe("afternoon");
-    expect(timeOfDay(17 * 60 + 59)).toBe("afternoon");
-    expect(timeOfDay(18 * 60)).toBe("evening");
-    expect(timeOfDay(23 * 60 + 59)).toBe("evening");
-  });
-});
 
 describe("durationBand", () => {
   it("uses the three bands of the expansion decision", () => {
@@ -56,11 +42,9 @@ describe("listingMatches", () => {
     expect(listingMatches(listing, withFilters({ languages: ["de"] }))).toBe(false);
   });
 
-  it("filters on medium and platform", () => {
+  it("filters on medium", () => {
     expect(listingMatches(listing, withFilters({ medium: ["audio"] }))).toBe(false);
     expect(listingMatches(listing, withFilters({ medium: ["video", "audio"] }))).toBe(true);
-    expect(listingMatches(listing, withFilters({ platforms: ["teams"] }))).toBe(false);
-    expect(listingMatches(listing, withFilters({ platforms: ["zoom"] }))).toBe(true);
   });
 
   it("treats the two toggles as off when they are null", () => {
@@ -84,20 +68,13 @@ describe("sittingMatches", () => {
     expect(sitting).toBeDefined();
   });
 
-  it("filters on the weekday in the visitor's zone", () => {
-    expect(sittingMatches(sitting, withFilters({ weekdays: [1] }))).toBe(true);
-    expect(sittingMatches(sitting, withFilters({ weekdays: [2] }))).toBe(false);
-  });
-
-  it("filters on the time of day and the duration band", () => {
-    expect(sittingMatches(sitting, withFilters({ timesOfDay: ["morning"] }))).toBe(true);
-    expect(sittingMatches(sitting, withFilters({ timesOfDay: ["evening"] }))).toBe(false);
+  it("filters on the duration band", () => {
     expect(sittingMatches(sitting, withFilters({ durations: ["hour"] }))).toBe(true);
     expect(sittingMatches(sitting, withFilters({ durations: ["day"] }))).toBe(false);
   });
 
   it("also applies the listing filters", () => {
-    expect(sittingMatches(sitting, withFilters({ platforms: ["teams"] }))).toBe(false);
+    expect(sittingMatches(sitting, withFilters({ medium: ["stream"] }))).toBe(false);
   });
 });
 
@@ -107,7 +84,7 @@ describe("activeCount", () => {
   });
 
   it("counts each chosen option and each toggle that is on", () => {
-    expect(activeCount(withFilters({ weekdays: [1, 2], languages: ["en"], teacherLed: true }))).toBe(4);
+    expect(activeCount(withFilters({ durations: ["hour", "day"], languages: ["en"], teacherLed: true }))).toBe(4);
   });
 });
 
