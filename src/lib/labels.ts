@@ -54,16 +54,6 @@ export const fmtDayOfMonth = format({ day: "numeric" });
 export const fmtDayMonth = format({ day: "numeric", month: "short" });
 export const fmtDayMonthYear = format({ day: "numeric", month: "short", year: "numeric" });
 
-const FRACTION: Record<number, string> = { 15: "¼", 30: "½", 45: "¾" };
-
-/** The tag a sitting longer than 90 minutes carries on the grid, such as "3½ h". */
-export function durationTag(min: number): string | null {
-  if (min <= 90) return null;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (m === 0) return `${h} h`;
-  return FRACTION[m] ? `${h}${FRACTION[m]} h` : `${h} h ${m} min`;
-}
 
 export function fmtDate(d: Date, zone: string, opts: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }): string {
   return new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone }).format(d);
