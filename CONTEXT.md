@@ -17,8 +17,17 @@ One concrete occurrence of a listing at a specific date, start time, and duratio
 _Avoid_: session, meeting, occurrence, course
 
 **Slot**:
-All sittings on one day that start at the same instant and last as long, with the length rounded to the half hour. One block on the calendar; the old student picks a sitting from it.
-_Avoid_: group, cluster, cell, chip
+All sittings on one day that start at the same instant and last as long, with the length rounded to the half hour. One row on the day list; the old student picks a sitting from it.
+_Avoid_: group, cluster, cell, block
+
+**Day list**:
+The slots of one day in start order. The calendar shows seven day lists side by side on a laptop, and stacked in one scroll on a phone.
+_Avoid_: column, agenda, timetable
+
+**Tag**:
+A short mark on a slot for what varies between slots: a flag for a language other than English, or a length other than one hour.
+_Avoid_: chip, badge, label
+
 
 **Schedule rule**:
 A recurrence extracted from a listing: which weekdays, which weeks of the month if not every week, what start time, how long, and in which timezone. One listing can carry several schedule rules. A listing with no schedule rule still exists and is shown without a place on the calendar.

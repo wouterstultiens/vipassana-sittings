@@ -12,15 +12,14 @@ export type Sitting = {
   start: Date; // instant
   end: Date; // instant
   local: TZDate; // start in the old student's zone
-  minutesFromMidnight: number; // in the old student's zone
   crossesMidnight: boolean; // end falls on the next local day
 };
 
-/** How far the old student can walk from today, in weeks. */
-export const WEEKS_BACK = 2;
+/** How far ahead of today the old student can walk, in weeks. */
 export const WEEKS_AHEAD = 8;
 
-const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+/** Weekdays in the order of Date.getDay(). */
+export const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 function matchesWeekOfMonth(rule: ScheduleRule, d: TZDate): boolean {
   if (!rule.weeksOfMonth) return true;
@@ -56,7 +55,6 @@ export function expandSittings(listings: Listing[], from: Date, to: Date, zone: 
           start: new Date(start.getTime()),
           end,
           local,
-          minutesFromMidnight: local.getHours() * 60 + local.getMinutes(),
           crossesMidnight: localEnd.getDate() !== local.getDate() && (localEnd.getHours() > 0 || localEnd.getMinutes() > 0),
         });
       }
@@ -64,9 +62,6 @@ export function expandSittings(listings: Listing[], from: Date, to: Date, zone: 
   }
   return out.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
-
-/** The grid row a sitting belongs to: the hour it starts in the old student's zone. */
-export const localHour = (s: Sitting): number => Math.floor(s.minutesFromMidnight / 60);
 
 /** Midnight at the start of the given local day, as an instant. */
 export function localDayStart(d: Date, zone: string, offsetDays = 0): Date {

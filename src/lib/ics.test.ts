@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { expandSittings, type Sitting } from "@/lib/expand";
-import { icsEvent } from "@/lib/ics";
+import { icsEvent, icsFileName } from "@/lib/ics";
 import { aJoin, aListing, aRule } from "@/test/fixtures";
 import type { Listing } from "@/schema/listing";
 
@@ -8,11 +8,10 @@ import type { Listing } from "@/schema/listing";
 const MONDAY = new Date("2026-08-03T00:00:00Z");
 const TUESDAY = new Date("2026-08-04T00:00:00Z");
 
-const sittingsOf = (listing: Listing): Sitting[] =>
-  expandSittings([listing], MONDAY, TUESDAY, "Europe/Amsterdam");
+const sittingsOf = (listing: Listing, to = TUESDAY): Sitting[] => expandSittings([listing], MONDAY, to, "Europe/Amsterdam");
 
 const lines = (ics: string) => ics.split("\r\n");
-const line = (ics: string, key: string) => lines(ics).find((l) => l.startsWith(`${key}:`));
+const line = (ics: string, key: string) => lines(ics).find((l) => l.startsWith(`${key}:`) || l.startsWith(`${key};`));
 const unfold = (ics: string) => ics.replace(/\r\n /g, "");
 
 describe("icsEvent", () => {
@@ -23,12 +22,34 @@ describe("icsEvent", () => {
     expect(lines(ics)[0]).toBe("BEGIN:VCALENDAR");
     expect(lines(ics).at(-1)).toBe("END:VCALENDAR");
     expect(lines(ics).filter((l) => l === "BEGIN:VEVENT")).toHaveLength(1);
+    expect(ics).not.toContain("VTIMEZONE");
   });
 
-  it("writes the start and the end as the UTC instants of the sitting", () => {
+  it("writes the start and the end as wall-clock time in the host's zone", () => {
     const ics = icsEvent(sitting);
-    expect(line(ics, "DTSTART")).toBe("DTSTART:20260803T050000Z");
-    expect(line(ics, "DTEND")).toBe("DTEND:20260803T060000Z");
+    expect(line(ics, "DTSTART")).toBe("DTSTART;TZID=Europe/Amsterdam:20260803T070000");
+    expect(line(ics, "DTEND")).toBe("DTEND;TZID=Europe/Amsterdam:20260803T080000");
+  });
+
+  it("repeats weekly on the weekdays of the rule", () => {
+    const [s] = sittingsOf(aListing({ scheduleRules: [aRule({ weekdays: ["mon", "tue", "thu"] })] }));
+    expect(line(icsEvent(s), "RRULE")).toBe("RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH");
+  });
+
+  it("repeats monthly for a rule with weeks of the month, with -1 for the last week", () => {
+    const [s] = sittingsOf(aListing({ scheduleRules: [aRule({ weekdays: ["mon"], weeksOfMonth: [1, 3, -1] })] }));
+    expect(line(icsEvent(s), "RRULE")).toBe("RRULE:FREQ=MONTHLY;BYDAY=1MO,3MO,-1MO");
+  });
+
+  it("identifies the event by the listing and the rule, so a second download updates the first", () => {
+    const listing = aListing({ scheduleRules: [aRule({ weekdays: ["mon", "tue"] }), aRule({ weekdays: ["wed"], start: "20:00" })] });
+    const week = sittingsOf(listing, new Date("2026-08-06T00:00:00Z"));
+    expect(week.map((s) => line(icsEvent(s), "UID"))).toEqual([
+      "UID:772-0@vipassana-sittings",
+      "UID:772-0@vipassana-sittings",
+      "UID:772-1@vipassana-sittings",
+    ]);
+    expect(icsFileName(week[2])).toBe("sitting-772-1.ics");
   });
 
   it("escapes the commas and semicolons in the summary", () => {
@@ -56,12 +77,5 @@ describe("icsEvent", () => {
     const ics = icsEvent(s);
     for (const l of lines(ics)) expect(l.length).toBeLessThanOrEqual(75);
     expect(unfold(ics)).toContain(`URL:${url}`);
-  });
-
-  it("gives every sitting its own stable identifier", () => {
-    const listing = aListing({ scheduleRules: [aRule({ weekdays: ["mon", "tue"] })] });
-    const week = expandSittings([listing], MONDAY, new Date("2026-08-05T00:00:00Z"), "Europe/Amsterdam");
-    const uids = week.map((s) => line(icsEvent(s), "UID"));
-    expect(new Set(uids).size).toBe(week.length);
   });
 });

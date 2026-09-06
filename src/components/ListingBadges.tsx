@@ -2,7 +2,7 @@ import type { Listing } from "@/schema/listing";
 import { languageName, MEDIUM_LABEL, PLATFORM_LABEL } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
 
-/** What a listing offers, at a glance. "xs" is the size the grid's card list uses. */
+/** What a listing offers, at a glance. "xs" is the size the slot sheet list uses. */
 export function ListingBadges({ listing, size = "sm" }: { listing: Listing; size?: "sm" | "xs" }) {
   const small = size === "xs" ? "px-1 py-0 text-[10px]" : "";
   return (

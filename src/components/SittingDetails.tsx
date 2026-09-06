@@ -1,6 +1,6 @@
 // The detail panel body: everything an old student needs to attend the one
 // sitting they clicked. The calendar already shows every other time this host
-// offers, so the panel never repeats the schedule.
+// offers, so the panel names the schedule only on the calendar button.
 import * as React from "react";
 import { CalendarPlusIcon, CopyIcon, ExternalLinkIcon, MailIcon, PhoneIcon, VideoIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
@@ -12,6 +12,7 @@ import {
   displayHost,
   fmtDate,
   fmtDuration,
+  fmtRepeat,
   fmtTime,
   PLATFORM_LABEL,
   zoneAbbr,
@@ -66,7 +67,7 @@ export function SittingDetails({
   const extraHost = listing.name.toLowerCase().includes(host.toLowerCase()) ? null : host;
 
   return (
-    <div className="space-y-5 overflow-y-auto p-5">
+    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
       <header className="space-y-2 pr-8">
         <h2 className="text-lg leading-snug font-semibold">{listing.name}</h2>
         <div className="text-xs text-muted-foreground">
@@ -94,8 +95,8 @@ export function SittingDetails({
           </div>
         )}
         <div className="mt-3">
-          <Button size="sm" variant="outline" onClick={() => downloadIcs(sitting)}>
-            <CalendarPlusIcon /> Add this one time to my calendar
+          <Button size="sm" variant="outline" className="h-auto min-h-8 py-1.5 whitespace-normal" onClick={() => downloadIcs(sitting)}>
+            <CalendarPlusIcon /> Add to my calendar, {fmtRepeat(sitting, zone)}
           </Button>
         </div>
       </section>

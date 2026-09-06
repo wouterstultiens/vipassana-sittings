@@ -1,43 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { Listing, ScheduleRule } from "@/schema/listing";
 import { expandSittings } from "@/lib/expand";
-import { placeSlots, roundLength, slotsOf } from "@/lib/slots";
-
-const rule = (over: Partial<ScheduleRule> = {}): ScheduleRule => ({
-  weekdays: ["mon"],
-  weeksOfMonth: null,
-  start: "19:00",
-  durationMinutes: 60,
-  timeZone: "Europe/Amsterdam",
-  label: null,
-  join: null,
-  ...over,
-});
-
-const listing = (rules: ScheduleRule[], over: Partial<Listing> = {}): Listing =>
-  ({
-    id: 1,
-    name: "Test listing",
-    country: "NL",
-    host: { name: "Host", city: null, email: null, url: null },
-    description: "",
-    hostPageUrl: null,
-    apiHash: "",
-    pageHash: null,
-    extractedAt: "2026-01-01T00:00:00Z",
-    languages: ["en"],
-    medium: "video",
-    teacherLed: false,
-    questionsAndAnswers: false,
-    platform: "zoom",
-    join: { url: null, meetingId: null, password: { kind: "none" }, dialIn: null },
-    scheduleRules: rules,
-    ...over,
-  }) as Listing;
+import { endedSlots, languageTags, roundLength, slotsOf } from "@/lib/slots";
+import { aListing, aRule } from "@/test/fixtures";
+import type { Listing, ScheduleRule } from "@/schema/listing";
 
 const zone = "Europe/Amsterdam";
+// Monday 1 June 2026.
 const from = new Date(Date.UTC(2026, 5, 1));
 const to = new Date(Date.UTC(2026, 5, 2));
+const withRule = (id: number, over: Partial<ScheduleRule> = {}, listing: Partial<Listing> = {}) =>
+  aListing({ id, name: `Listing ${id}`, scheduleRules: [aRule({ start: "19:00", ...over })], ...listing });
 const slotsFor = (...listings: Listing[]) => slotsOf(expandSittings(listings, from, to, zone));
 
 describe("roundLength", () => {
@@ -51,44 +23,61 @@ describe("roundLength", () => {
 
 describe("slotsOf", () => {
   it("folds sittings with the same start and rounded length into one slot", () => {
-    const a = listing([rule()], { id: 1, name: "A" });
-    const b = listing([rule({ durationMinutes: 65 })], { id: 2, name: "B" });
-    const slots = slotsFor(a, b);
+    const slots = slotsFor(withRule(1), withRule(2, { durationMinutes: 65 }));
     expect(slots).toHaveLength(1);
     expect(slots[0].durationMinutes).toBe(60);
-    expect(slots[0].sittings.map((s) => s.listing.name)).toEqual(["A", "B"]);
+    expect(slots[0].sittings.map((s) => s.listing.name)).toEqual(["Listing 1", "Listing 2"]);
   });
 
   it("keeps a different length apart, and orders slots by start then length", () => {
-    const a = listing([rule({ start: "20:00" })], { id: 1 });
-    const b = listing([rule({ durationMinutes: 90 })], { id: 2 });
-    const c = listing([rule()], { id: 3 });
-    expect(slotsFor(a, b, c).map((s) => [s.minutesFromMidnight, s.durationMinutes])).toEqual([
-      [19 * 60, 60],
-      [19 * 60, 90],
-      [20 * 60, 60],
+    const slots = slotsFor(withRule(1, { start: "20:00" }), withRule(2, { durationMinutes: 90 }), withRule(3));
+    expect(slots.map((s) => [s.start.toISOString().slice(11, 16), s.durationMinutes])).toEqual([
+      ["17:00", 60],
+      ["17:00", 90],
+      ["18:00", 60],
     ]);
   });
 });
 
-describe("placeSlots", () => {
-  it("gives a slot that overlaps nothing the full width", () => {
-    const placed = placeSlots(slotsFor(listing([rule()]), listing([rule({ start: "20:00" })], { id: 2 })));
-    expect(placed.map((p) => [p.lane, p.lanes])).toEqual([
-      [0, 1],
-      [0, 1],
-    ]);
+describe("languageTags", () => {
+  it("shows no language tag when every sitting offers English", () => {
+    const [slot] = slotsFor(withRule(1, {}, { languages: ["en", "nl"] }), withRule(2));
+    expect(languageTags(slot)).toEqual([]);
   });
 
-  it("puts overlapping slots side by side, and reuses a lane once it is free", () => {
-    const long = listing([rule({ start: "18:00", durationMinutes: 180 })], { id: 1 });
-    const a = listing([rule({ start: "19:00" })], { id: 2 });
-    const b = listing([rule({ start: "20:00" })], { id: 3 });
-    const placed = placeSlots(slotsFor(long, a, b));
-    expect(placed.map((p) => [p.slot.minutesFromMidnight / 60, p.lane, p.lanes])).toEqual([
-      [18, 0, 2],
-      [19, 1, 2],
-      [20, 1, 2],
-    ]);
+  it("tags the languages of the sittings that do not offer English, once each, sorted", () => {
+    const [slot] = slotsFor(
+      withRule(1, {}, { languages: ["fr"] }),
+      withRule(2, {}, { languages: ["es", "fr"] }),
+      withRule(3, {}, { languages: ["en", "de"] }),
+    );
+    expect(languageTags(slot).map((t) => t.codes)).toEqual([["es"], ["fr"]]);
+  });
+
+  it("merges the languages that share one flag into one tag", () => {
+    const [slot] = slotsFor(withRule(1, {}, { languages: ["te"] }), withRule(2, {}, { languages: ["hi", "kn"] }));
+    expect(languageTags(slot)).toEqual([{ flag: "IN", codes: ["hi", "kn", "te"] }]);
+  });
+
+  it("falls back to the code for a language without a flag", () => {
+    const [slot] = slotsFor(withRule(1, {}, { languages: ["eo"] }));
+    expect(languageTags(slot)).toEqual([{ flag: null, codes: ["eo"] }]);
+  });
+});
+
+describe("endedSlots", () => {
+  const slots = slotsFor(withRule(1, { start: "18:00" }), withRule(2, { start: "19:00" }), withRule(3, { start: "20:00" }));
+
+  it("splits the slots that have ended from the ones in progress or ahead", () => {
+    // 19:30 in Amsterdam: the 18:00 slot has ended, the 19:00 slot is in progress.
+    const now = new Date("2026-06-01T17:30:00Z");
+    const { ended, rest } = endedSlots(slots, now);
+    expect(ended.map((s) => s.sittings[0].listing.id)).toEqual([1]);
+    expect(rest.map((s) => s.sittings[0].listing.id)).toEqual([2, 3]);
+  });
+
+  it("treats a slot that ends exactly now as ended", () => {
+    const { ended } = endedSlots(slots, new Date("2026-06-01T17:00:00Z"));
+    expect(ended).toHaveLength(1);
   });
 });

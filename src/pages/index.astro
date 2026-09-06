@@ -1,6 +1,6 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import { WeekGrid } from "@/components/WeekGrid";
+import { Calendar } from "@/components/Calendar";
 import { loadListings } from "@/lib/load-listings";
 
 const listings = loadListings();
@@ -8,5 +8,5 @@ const builtAt = new Date().toISOString();
 ---
 
 <Layout>
-  <WeekGrid client:load listings={listings} builtAt={builtAt} />
+  <Calendar client:load listings={listings} builtAt={builtAt} />
 </Layout>

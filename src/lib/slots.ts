@@ -1,14 +1,13 @@
-// Folds the sittings of one day into slots, and lays the slots out side by
-// side where they overlap, so the calendar can draw each as a block whose
-// height is its length.
+// Folds the sittings of one day into slots, the rows of a day list, and
+// works out which language tags a row carries and whether it has ended.
 import type { Sitting } from "@/lib/expand";
+import { languageFlag, type LanguageFlag } from "@/lib/labels";
 
-/** The sittings of one day that share a start instant and a length. One block on the calendar. */
+/** The sittings of one day that share a start instant and a length. One row on the day list. */
 export type Slot = {
   key: string;
   start: Date;
   end: Date;
-  minutesFromMidnight: number;
   durationMinutes: number; // rounded to the half hour, so 65 minutes reads as one hour
   sittings: Sitting[];
 };
@@ -30,7 +29,6 @@ export function slotsOf(sittings: Sitting[]): Slot[] {
         key,
         start: s.start,
         end: new Date(s.start.getTime() + durationMinutes * 60_000),
-        minutesFromMidnight: s.minutesFromMidnight,
         durationMinutes,
         sittings: [s],
       });
@@ -38,30 +36,26 @@ export function slotsOf(sittings: Sitting[]): Slot[] {
   return [...slots.values()].sort((a, b) => a.start.getTime() - b.start.getTime() || a.durationMinutes - b.durationMinutes);
 }
 
-export type Placed = { slot: Slot; lane: number; lanes: number };
+/** One language tag: a flag, or the code when no flag is mapped. Languages that share a flag share a tag. */
+export type LanguageTag = { flag: LanguageFlag | null; codes: string[] };
 
-/**
- * Gives every slot a lane, so slots that overlap in time sit side by side.
- * Slots that overlap nothing get the full width. Expects slots in start order.
- */
-export function placeSlots(slots: Slot[]): Placed[] {
-  const out: Placed[] = [];
-  let cluster: Placed[] = [];
-  let laneEnds: number[] = [];
-  const close = () => {
-    for (const p of cluster) p.lanes = laneEnds.length;
-    out.push(...cluster);
-    cluster = [];
-    laneEnds = [];
-  };
-  for (const slot of slots) {
-    const start = slot.start.getTime();
-    if (laneEnds.length && laneEnds.every((end) => end <= start)) close();
-    let lane = laneEnds.findIndex((end) => end <= start);
-    if (lane === -1) lane = laneEnds.length;
-    laneEnds[lane] = slot.end.getTime();
-    cluster.push({ slot, lane, lanes: 0 });
+/** The languages of the sittings that do not offer English, sorted, one tag per flag. */
+export function languageTags(slot: Slot): LanguageTag[] {
+  const codes = [...new Set(slot.sittings.filter((s) => !s.listing.languages.includes("en")).flatMap((s) => s.listing.languages))].sort();
+  const byFlag = new Map<string, LanguageTag>();
+  for (const code of codes) {
+    const flag = languageFlag(code);
+    const tag = byFlag.get(flag ?? code);
+    if (tag) tag.codes.push(code);
+    else byFlag.set(flag ?? code, { flag, codes: [code] });
   }
-  close();
-  return out;
+  return [...byFlag.values()];
+}
+
+/** Splits today's slots into the ones that have ended and the rest, which are in progress or ahead. */
+export function endedSlots(slots: Slot[], now: Date): { ended: Slot[]; rest: Slot[] } {
+  return {
+    ended: slots.filter((s) => s.end <= now),
+    rest: slots.filter((s) => s.end > now),
+  };
 }
