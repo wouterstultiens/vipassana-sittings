@@ -8,7 +8,7 @@ const subscribe = (onChange: () => void) => {
   return () => media.removeEventListener("change", onChange);
 };
 
-/** True under 768 px. The server render says false; the layout itself is CSS-only, so only sheets ask. */
+/** True under 768 px. The server render says false and draws the laptop layout; the phone corrects it on mount. */
 export const usePhone = () =>
   React.useSyncExternalStore(
     subscribe,

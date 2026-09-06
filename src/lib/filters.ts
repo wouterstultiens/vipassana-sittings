@@ -32,14 +32,14 @@ export const EMPTY_FILTERS: Filters = {
 
 export function durationBand(minutes: number): DurationBand {
   if (minutes <= 90) return "hour";
-  if (minutes <= 240) return "long";
+  if (minutes < 240) return "long";
   return "day";
 }
 
 export const DURATION_LABEL: Record<DurationBand, string> = {
-  hour: "About an hour",
-  long: "2 to 4 hours",
-  day: "Half or full day",
+  hour: "1 hour",
+  long: "2 to 3 hours",
+  day: "Half day or more",
 };
 
 /** The filters a listing can answer on its own. */

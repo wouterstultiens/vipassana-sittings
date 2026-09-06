@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { expandSittings } from "@/lib/expand";
-import { endedSlots, languageTags, roundLength, slotsOf } from "@/lib/slots";
+import { languageTags, roundLength, slotsOf, tagsThatFit } from "@/lib/slots";
 import { aListing, aRule } from "@/test/fixtures";
 import type { Listing, ScheduleRule } from "@/schema/listing";
 
@@ -40,18 +40,23 @@ describe("slotsOf", () => {
 });
 
 describe("languageTags", () => {
-  it("shows no language tag when every sitting offers English", () => {
-    const [slot] = slotsFor(withRule(1, {}, { languages: ["en", "nl"] }), withRule(2));
-    expect(languageTags(slot)).toEqual([]);
+  it("tags English like any other language, so a row without the flag has no English", () => {
+    const [slot] = slotsFor(withRule(1), withRule(2));
+    expect(languageTags(slot)).toEqual([{ flag: "GB", codes: ["en"] }]);
   });
 
-  it("tags the languages of the sittings that do not offer English, once each, sorted", () => {
+  it("tags every language on offer, English first, then sorted, once each", () => {
     const [slot] = slotsFor(
       withRule(1, {}, { languages: ["fr"] }),
       withRule(2, {}, { languages: ["es", "fr"] }),
-      withRule(3, {}, { languages: ["en", "de"] }),
+      withRule(3, {}, { languages: ["nl", "en"] }),
     );
-    expect(languageTags(slot).map((t) => t.codes)).toEqual([["es"], ["fr"]]);
+    expect(languageTags(slot).map((t) => t.codes)).toEqual([["en"], ["es"], ["fr"], ["nl"]]);
+  });
+
+  it("tags a slot without English by its languages alone", () => {
+    const [slot] = slotsFor(withRule(1, {}, { languages: ["es"] }));
+    expect(languageTags(slot)).toEqual([{ flag: "ES", codes: ["es"] }]);
   });
 
   it("merges the languages that share one flag into one tag", () => {
@@ -65,19 +70,20 @@ describe("languageTags", () => {
   });
 });
 
-describe("endedSlots", () => {
-  const slots = slotsFor(withRule(1, { start: "18:00" }), withRule(2, { start: "19:00" }), withRule(3, { start: "20:00" }));
-
-  it("splits the slots that have ended from the ones in progress or ahead", () => {
-    // 19:30 in Amsterdam: the 18:00 slot has ended, the 19:00 slot is in progress.
-    const now = new Date("2026-06-01T17:30:00Z");
-    const { ended, rest } = endedSlots(slots, now);
-    expect(ended.map((s) => s.sittings[0].listing.id)).toEqual([1]);
-    expect(rest.map((s) => s.sittings[0].listing.id)).toEqual([2, 3]);
+describe("tagsThatFit", () => {
+  it("shows every tag when the row is wide enough, as on a phone", () => {
+    expect(tagsThatFit(5, 318, 1, false)).toBe(5);
+    expect(tagsThatFit(3, 318, 2, true)).toBe(3);
   });
 
-  it("treats a slot that ends exactly now as ended", () => {
-    const { ended } = endedSlots(slots, new Date("2026-06-01T17:00:00Z"));
-    expect(ended).toHaveLength(1);
+  it("keeps room for a +N when they do not all fit, as in a laptop column", () => {
+    expect(tagsThatFit(4, 181, 1, false)).toBe(4);
+    expect(tagsThatFit(5, 181, 1, false)).toBe(3);
+    expect(tagsThatFit(3, 181, 1, true)).toBe(2);
+  });
+
+  it("shows up to three before the row is measured, and never fewer than one", () => {
+    expect(tagsThatFit(5, 0, 1, false)).toBe(3);
+    expect(tagsThatFit(3, 90, 2, true)).toBe(1);
   });
 });

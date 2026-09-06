@@ -19,8 +19,8 @@ describe("durationBand", () => {
     expect(durationBand(60)).toBe("hour");
     expect(durationBand(90)).toBe("hour");
     expect(durationBand(91)).toBe("long");
-    expect(durationBand(240)).toBe("long");
-    expect(durationBand(241)).toBe("day");
+    expect(durationBand(210)).toBe("long");
+    expect(durationBand(240)).toBe("day");
     expect(durationBand(600)).toBe("day");
   });
 });
@@ -100,7 +100,7 @@ describe("appliedFilters", () => {
   it("lists every chosen option, each able to remove itself", () => {
     const f = withFilters({ durations: ["long"], languages: ["es", "fr"], medium: ["audio"], teacherLed: true });
     const applied = appliedFilters(f);
-    expect(applied.map((a) => a.label)).toEqual(["2 to 4 hours", "Spanish", "French", "Audio only", "Teacher led"]);
+    expect(applied.map((a) => a.label)).toEqual(["2 to 3 hours", "Spanish", "French", "Audio only", "Teacher led"]);
     expect(applied[1].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["fr"], medium: ["audio"], teacherLed: true }));
     expect(applied[4].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["es", "fr"], medium: ["audio"] }));
   });

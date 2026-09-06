@@ -29,18 +29,21 @@ export function languageTitle(code: string): string {
   } catch {
     // An unknown code keeps the code itself as its name.
   }
-  return `${native.charAt(0).toUpperCase()}${native.slice(1)} (${languageName(code)})`;
+  native = `${native.charAt(0).toUpperCase()}${native.slice(1)}`;
+  const english = languageName(code);
+  return native === english ? english : `${native} (${english})`;
 }
 
 /**
  * The flag that stands for a language on a row. Hand-kept: a flag names a
  * country, so this is the country an old student reads the language from, not
- * where the host is. English has no entry because English gets no tag.
+ * where the host is.
  */
 export const LANGUAGE_FLAG = {
   ar: "SA",
   bg: "BG",
   da: "DK",
+  en: "GB",
   es: "ES",
   fa: "IR",
   fi: "FI",
@@ -104,6 +107,8 @@ const format = (opts: Intl.DateTimeFormatOptions) => (d: Date, zone: string) =>
   new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone }).format(d);
 
 export const fmtTime = format({ hour: "2-digit", minute: "2-digit" });
+/** The hour of the day, 0 to 23, in the old student's zone. */
+export const hourIn = (d: Date, zone: string) => new TZDate(d, zone).getHours();
 export const fmtWeekday = format({ weekday: "short" });
 export const fmtDayOfMonth = format({ day: "numeric" });
 export const fmtDayMonth = format({ day: "numeric", month: "short" });
@@ -155,4 +160,11 @@ export function displayHost(l: Listing): string {
     .replace(/_copy$/, "")
     .replace(/-[A-Za-z]+\/[A-Za-z_]+$/, "");
   return n.length > 40 ? countryName(l.country) : n;
+}
+
+/** A slot length as a short tag: "30 min", "1½ h", "3 h". Lengths are already rounded to the half hour. */
+export function fmtLength(min: number): string {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  return min % 60 ? `${h}½ h` : `${h} h`;
 }
