@@ -1,17 +1,16 @@
 // The calendar: a Monday-to-Sunday grid with one row per hour of the old
-// student's day. Each cell holds the sittings that start in that hour. Listings
-// without a schedule rule sit under the grid. Opening any of them opens the
-// detail panel.
+// student's day. Each cell holds the sittings that start in that hour. Opening
+// one opens the detail panel.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { expandSittings, hourInZone, localDayStart, localHour, weekStart, WEEKS_AHEAD, type Sitting } from "@/lib/expand";
-import { EMPTY_FILTERS, listingMatches, sittingMatches, type Filters } from "@/lib/filters";
-import { displayHost, durationTag, flag, fmtDayMonth, fmtDayMonthYear, fmtDayOfMonth, fmtTime, fmtWeekday } from "@/lib/labels";
+import { EMPTY_FILTERS, sittingMatches, type Filters } from "@/lib/filters";
+import { durationTag, fmtDayMonth, fmtDayMonthYear, fmtDayOfMonth, fmtTime, fmtWeekday } from "@/lib/labels";
 import { FilterToolbar } from "@/components/FilterToolbar";
-import { ListingBadges } from "@/components/ListingBadges";
 import { Notice } from "@/components/Notice";
-import { SittingSheet, type PanelTarget } from "@/components/SittingSheet";
+import { SittingSheet } from "@/components/SittingSheet";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
 import { Button } from "@/components/ui/button";
 
@@ -26,13 +25,13 @@ function GridSitting({ sitting, zone, past, onOpen }: { sitting: Sitting; zone: 
       onClick={onOpen}
       title={sitting.listing.name}
       className={`flex w-full items-center gap-1 truncate rounded border px-1 py-0.5 text-left text-[11px] leading-tight hover:shadow ${
-        sitting.listing.teacherLed ? "border-primary/40 bg-primary/15" : "border-amber-300/60 bg-amber-100/70"
+        sitting.listing.teacherLed
+          ? "border-primary/40 bg-primary/15"
+          : "border-amber-300/60 bg-amber-100/70 dark:border-amber-500/30 dark:bg-amber-500/10"
       } ${tag ? "border-l-4 border-l-primary" : ""} ${past ? "opacity-50" : ""}`}
     >
       <span className="font-semibold tabular-nums">{fmtTime(sitting.start, zone)}</span>
-      <span className="truncate">
-        {flag(sitting.listing.country)} {sitting.listing.name}
-      </span>
+      <span className="truncate">{sitting.listing.name}</span>
       {tag && <span className="ml-auto shrink-0 rounded bg-background/70 px-1 tabular-nums">{tag}</span>}
     </button>
   );
@@ -49,7 +48,7 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const [weeksAhead, setWeeksAhead] = React.useState(0);
   const [filters, setFilters] = React.useState<Filters>(EMPTY_FILTERS);
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
-  const [target, setTarget] = React.useState<PanelTarget | null>(null);
+  const [open, setOpen] = React.useState<Sitting | null>(null);
 
   const thisWeek = weekStart(now, zone);
   const from = localDayStart(thisWeek, zone, 7 * weeksAhead);
@@ -60,9 +59,14 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const all = React.useMemo(() => expandSittings(listings, from, to, zone), [listings, from.getTime(), to.getTime(), zone]);
   const shown = all.filter((s) => sittingMatches(s, filters));
   const byDay = days.map((d, i) => shown.filter((s) => s.start >= d && s.start < dayEnd(i)));
-  const withoutFixedTime = listings.filter((l) => l.scheduleRules.length === 0 && listingMatches(l, filters));
   const todayIdx = days.findIndex((d, i) => now >= d && now < dayEnd(i));
   const nowHour = hourInZone(now, zone);
+
+  // Open on the hour the old student is in, not on the empty small hours.
+  const focusRow = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    focusRow.current?.scrollIntoView({ block: "start" });
+  }, [zone]);
 
   return (
     <div className="mx-auto flex h-screen max-w-[1400px] flex-col">
@@ -74,6 +78,7 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Times in</span>
           <ZoneSelect value={zone} onChange={(z) => setView((v) => ({ ...v, zone: z }))} />
+          <ThemeToggle />
         </div>
       </header>
 
@@ -126,7 +131,10 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
           ))}
           {HOURS.map((h) => (
             <React.Fragment key={h}>
-              <div className="border-t py-1 pr-1 text-right text-[10px] text-muted-foreground tabular-nums">
+              <div
+                ref={h === nowHour ? focusRow : undefined}
+                className="border-t py-1 pr-1 text-right text-[10px] text-muted-foreground tabular-nums"
+              >
                 {String(h).padStart(2, "0")}:00
               </div>
               {byDay.map((items, di) => {
@@ -142,13 +150,7 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
                     }`}
                   >
                     {visible.map((s) => (
-                      <GridSitting
-                        key={s.key}
-                        sitting={s}
-                        zone={zone}
-                        past={s.end < now}
-                        onOpen={() => setTarget({ listing: s.listing, sitting: s })}
-                      />
+                      <GridSitting key={s.key} sitting={s} zone={zone} past={s.end < now} onOpen={() => setOpen(s)} />
                     ))}
                     {cell.length > PER_CELL && (
                       <button
@@ -171,27 +173,9 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
             </React.Fragment>
           ))}
         </div>
-
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold">Without a fixed time · see details</h2>
-          <p className="mb-2 text-xs text-muted-foreground">These listings give no schedule we can place on the grid.</p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {withoutFixedTime.map((l) => (
-              <button key={l.id} type="button" onClick={() => setTarget({ listing: l })} className="rounded-lg border p-3 text-left hover:bg-accent">
-                <div className="text-xs text-muted-foreground">
-                  {flag(l.country)} {displayHost(l)}
-                </div>
-                <div className="text-sm font-medium">{l.name}</div>
-                <div className="mt-1">
-                  <ListingBadges listing={l} size="xs" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
       </div>
 
-      <SittingSheet target={target} onClose={() => setTarget(null)} zone={zone} referenceDate={from} />
+      <SittingSheet sitting={open} onClose={() => setOpen(null)} zone={zone} />
     </div>
   );
 }

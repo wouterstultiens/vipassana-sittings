@@ -1,29 +1,20 @@
 // The filter toolbar: one popover dropdown per field, two toggles, a Clear
-// button, and the count of what is shown.
+// button, and the count of what is shown. The calendar answers "which day" and
+// "which hour" on its own, so the toolbar asks only what the grid cannot show.
 import * as React from "react";
 import { ChevronDownIcon, FilterXIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
-import {
-  activeCount,
-  DURATION_LABEL,
-  EMPTY_FILTERS,
-  TIME_OF_DAY_LABEL,
-  toggle,
-  type Filters,
-} from "@/lib/filters";
-import { languageName, MEDIUM_LABEL, PLATFORM_LABEL, WEEKDAY_SHORT } from "@/lib/labels";
+import { activeCount, DURATION_LABEL, EMPTY_FILTERS, toggle, type Filters } from "@/lib/filters";
+import { languageName, MEDIUM_LABEL } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// Monday first, the same order as the week grid.
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-
 // The filters that hold a list of chosen options, as opposed to the two toggles.
-type ChoiceKey = "weekdays" | "timesOfDay" | "durations" | "languages" | "medium" | "platforms";
+type ChoiceKey = "durations" | "languages" | "medium";
 
 const keysOf = <T extends string>(record: Record<T, string>) => Object.keys(record) as T[];
 
-function FilterMenu<T extends string | number>({
+function FilterMenu<T extends string>({
   label,
   options,
   selected,
@@ -48,7 +39,7 @@ function FilterMenu<T extends string | number>({
       <PopoverContent className="max-h-80 overflow-y-auto">
         <ul className="space-y-1">
           {options.map((option) => (
-            <li key={String(option.value)}>
+            <li key={option.value}>
               <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-accent">
                 <input
                   type="checkbox"
@@ -101,13 +92,6 @@ export function FilterToolbar({
       ),
     [listings],
   );
-  const platforms = React.useMemo(
-    () =>
-      [...new Set(listings.map((l) => l.platform))].sort((a, b) =>
-        PLATFORM_LABEL[a].localeCompare(PLATFORM_LABEL[b]),
-      ),
-    [listings],
-  );
 
   const onToggle =
     <K extends ChoiceKey>(key: K) =>
@@ -120,19 +104,7 @@ export function FilterToolbar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <FilterMenu
-        label="Weekday"
-        options={DAY_ORDER.map((d) => ({ value: d, label: WEEKDAY_SHORT[d] }))}
-        selected={filters.weekdays}
-        onToggle={onToggle("weekdays")}
-      />
-      <FilterMenu
-        label="Time of day"
-        options={keysOf(TIME_OF_DAY_LABEL).map((k) => ({ value: k, label: TIME_OF_DAY_LABEL[k] }))}
-        selected={filters.timesOfDay}
-        onToggle={onToggle("timesOfDay")}
-      />
-      <FilterMenu
-        label="Duration"
+        label="Length"
         options={keysOf(DURATION_LABEL).map((k) => ({ value: k, label: DURATION_LABEL[k] }))}
         selected={filters.durations}
         onToggle={onToggle("durations")}
@@ -144,16 +116,10 @@ export function FilterToolbar({
         onToggle={onToggle("languages")}
       />
       <FilterMenu
-        label="Medium"
+        label="Video or audio"
         options={keysOf(MEDIUM_LABEL).map((k) => ({ value: k, label: MEDIUM_LABEL[k] }))}
         selected={filters.medium}
         onToggle={onToggle("medium")}
-      />
-      <FilterMenu
-        label="Platform"
-        options={platforms.map((p) => ({ value: p, label: PLATFORM_LABEL[p] }))}
-        selected={filters.platforms}
-        onToggle={onToggle("platforms")}
       />
       <Toggle on={filters.teacherLed === true} onClick={flip("teacherLed")}>
         Teacher led

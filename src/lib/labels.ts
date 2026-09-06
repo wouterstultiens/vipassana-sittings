@@ -18,8 +18,6 @@ export const countryName = (code: string) => {
     return code;
   }
 };
-export const flag = (code: string) =>
-  String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 
 export const PLATFORM_LABEL: Record<Listing["platform"], string> = {
   zoom: "Zoom",
@@ -39,22 +37,6 @@ export const MEDIUM_LABEL: Record<Listing["medium"], string> = {
   audio: "Audio only",
   stream: "Live stream",
 };
-
-export const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-export const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const RULE_DAY: Record<string, string> = { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" };
-
-export function ruleDays(rule: Listing["scheduleRules"][number]): string {
-  const d = rule.weekdays;
-  let days: string;
-  if (d.length === 7) days = "Every day";
-  else if (d.length === 5 && !d.includes("sat") && !d.includes("sun")) days = "Weekdays";
-  else if (d.length === 2 && d.includes("sat") && d.includes("sun")) days = "Weekends";
-  else days = d.map((x) => RULE_DAY[x]).join(", ");
-  if (!rule.weeksOfMonth) return days;
-  const nth = rule.weeksOfMonth.map((w) => (w === -1 ? "last" : ["1st", "2nd", "3rd", "4th", "5th"][w - 1])).join(" and ");
-  return `${nth} ${days}`;
-}
 
 export function fmtDuration(min: number): string {
   if (min < 60) return `${min} min`;
@@ -96,6 +78,8 @@ export function zoneAbbr(d: Date, zone: string): string {
 export function displayHost(l: Listing): string {
   const n = l.host.name
     .replace(/^Virtual-(AV|Audio-Only|Stream|Only)-Sublocation-/i, "")
+    // Every listing here is virtual, so the word carries no information.
+    .replace(/^Virtual\s+/i, "")
     .replace(/_copy$/, "")
     .replace(/-[A-Za-z]+\/[A-Za-z_]+$/, "");
   return n.length > 40 ? countryName(l.country) : n;
