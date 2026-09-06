@@ -1,9 +1,8 @@
 // The phone's filter tray: a bottom sheet with the filter fields, the result
 // count fixed at the top, and the timezone and theme at the bottom.
-import * as React from "react";
 import { SlidersHorizontalIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
-import { activeCount, EMPTY_FILTERS, type Filters } from "@/lib/filters";
+import { activeCount, EMPTY_FILTERS, type Filters, type SetFilters } from "@/lib/filters";
 import { FilterFields } from "@/components/FilterToolbar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ZoneSelect } from "@/components/ZoneSelect";
@@ -21,7 +20,7 @@ export function FilterSheet({
 }: {
   listings: Listing[];
   filters: Filters;
-  setFilters: (update: (f: Filters) => Filters) => void;
+  setFilters: SetFilters;
   zone: string;
   setZone: (zone: string) => void;
   shown: number;

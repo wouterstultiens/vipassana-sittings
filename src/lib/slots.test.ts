@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { expandSittings } from "@/lib/expand";
-import { endedSlots, roundLength, slotsOf, slotTags } from "@/lib/slots";
+import { endedSlots, languageTags, roundLength, slotsOf } from "@/lib/slots";
 import { aListing, aRule } from "@/test/fixtures";
 import type { Listing, ScheduleRule } from "@/schema/listing";
 
@@ -39,10 +39,10 @@ describe("slotsOf", () => {
   });
 });
 
-describe("slotTags", () => {
+describe("languageTags", () => {
   it("shows no language tag when every sitting offers English", () => {
     const [slot] = slotsFor(withRule(1, {}, { languages: ["en", "nl"] }), withRule(2));
-    expect(slotTags(slot).languages).toEqual([]);
+    expect(languageTags(slot)).toEqual([]);
   });
 
   it("tags the languages of the sittings that do not offer English, once each, sorted", () => {
@@ -51,26 +51,17 @@ describe("slotTags", () => {
       withRule(2, {}, { languages: ["es", "fr"] }),
       withRule(3, {}, { languages: ["en", "de"] }),
     );
-    expect(slotTags(slot).languages.map((t) => t.codes)).toEqual([["es"], ["fr"]]);
+    expect(languageTags(slot).map((t) => t.codes)).toEqual([["es"], ["fr"]]);
   });
 
   it("merges the languages that share one flag into one tag", () => {
     const [slot] = slotsFor(withRule(1, {}, { languages: ["te"] }), withRule(2, {}, { languages: ["hi", "kn"] }));
-    const [tag] = slotTags(slot).languages;
-    expect(tag.flag).toBe("IN");
-    expect(tag.codes).toEqual(["hi", "kn", "te"]);
-    expect(tag.label).toBe("हिन्दी (Hindi), ಕನ್ನಡ (Kannada), తెలుగు (Telugu)");
+    expect(languageTags(slot)).toEqual([{ flag: "IN", codes: ["hi", "kn", "te"] }]);
   });
 
   it("falls back to the code for a language without a flag", () => {
     const [slot] = slotsFor(withRule(1, {}, { languages: ["eo"] }));
-    expect(slotTags(slot).languages).toEqual([{ flag: null, codes: ["eo"], label: "Esperanto (Esperanto)" }]);
-  });
-
-  it("tags the length only when the slot is not one hour", () => {
-    const [hour, long] = slotsFor(withRule(1), withRule(2, { durationMinutes: 90 }));
-    expect(slotTags(hour).length).toBeNull();
-    expect(slotTags(long).length).toBe("1 h 30 min");
+    expect(languageTags(slot)).toEqual([{ flag: null, codes: ["eo"] }]);
   });
 });
 

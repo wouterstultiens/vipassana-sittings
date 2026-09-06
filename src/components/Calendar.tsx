@@ -5,7 +5,7 @@ import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
-import { EMPTY_FILTERS, sittingMatches, type Filters } from "@/lib/filters";
+import { EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
 import { fmtDayMonth, fmtDayMonthYear } from "@/lib/labels";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
 import { slotsOf, type Slot } from "@/lib/slots";
@@ -37,7 +37,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
 
   const zone = prefs?.zone ?? "UTC";
   const filters = prefs?.filters ?? EMPTY_FILTERS;
-  const setFilters = (update: (f: Filters) => Filters) => setPrefs((p) => p && { ...p, filters: update(p.filters) });
+  const setFilters: SetFilters = (update) => setPrefs((p) => p && { ...p, filters: update(p.filters) });
   const setZone = (z: string) => setPrefs((p) => p && { ...p, zone: z });
 
   const [weeks, setWeeks] = React.useState(0);

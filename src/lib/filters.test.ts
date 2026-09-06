@@ -97,12 +97,12 @@ describe("toggle", () => {
 });
 
 describe("appliedFilters", () => {
-  it("lists one chip per chosen option, each able to remove itself", () => {
+  it("lists every chosen option, each able to remove itself", () => {
     const f = withFilters({ durations: ["long"], languages: ["es", "fr"], medium: ["audio"], teacherLed: true });
-    const chips = appliedFilters(f);
-    expect(chips.map((c) => c.label)).toEqual(["2 to 4 hours", "Spanish", "French", "Audio only", "Teacher led"]);
-    expect(chips[1].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["fr"], medium: ["audio"], teacherLed: true }));
-    expect(chips[4].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["es", "fr"], medium: ["audio"] }));
+    const applied = appliedFilters(f);
+    expect(applied.map((a) => a.label)).toEqual(["2 to 4 hours", "Spanish", "French", "Audio only", "Teacher led"]);
+    expect(applied[1].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["fr"], medium: ["audio"], teacherLed: true }));
+    expect(applied[4].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["es", "fr"], medium: ["audio"] }));
   });
 
   it("is empty when nothing is applied", () => {

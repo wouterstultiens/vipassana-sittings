@@ -24,9 +24,8 @@ import {
   SE,
   TH,
 } from "country-flag-icons/react/3x2";
-import type { LanguageFlag } from "@/lib/labels";
-import { fmtTime } from "@/lib/labels";
-import { slotTags, type LanguageTag, type Slot } from "@/lib/slots";
+import { fmtDuration, fmtTime, languageTitle, type LanguageFlag } from "@/lib/labels";
+import { languageTags, type LanguageTag, type Slot } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 
 // Every flag the language map names. The type keeps the two maps in step.
@@ -34,17 +33,20 @@ const FLAG: Record<LanguageFlag, typeof ES> = { BG, BR, CN, DK, ES, FI, FR, HU, 
 
 const MAX_LANGUAGE_TAGS = 3;
 
-function LanguageMark({ tag }: { tag: LanguageTag }) {
+const tagTitle = (tag: LanguageTag) => tag.codes.map(languageTitle).join(", ");
+
+function LanguageTagView({ tag }: { tag: LanguageTag }) {
+  const title = tagTitle(tag);
   if (tag.flag) {
     const Flag = FLAG[tag.flag];
     return (
-      <span role="img" title={tag.label} aria-label={tag.label} className="inline-flex">
+      <span role="img" title={title} aria-label={title} className="inline-flex">
         <Flag aria-hidden className="h-3.5 w-[21px] rounded-[2px] ring-1 ring-black/10 dark:ring-white/15" />
       </span>
     );
   }
   return (
-    <span title={tag.label} aria-label={tag.label} className="rounded-sm border px-1 font-mono text-[10px] leading-4 lowercase">
+    <span title={title} aria-label={title} className="rounded-sm border px-1 font-mono text-[10px] leading-4 lowercase">
       {tag.codes[0]}
     </span>
   );
@@ -54,13 +56,14 @@ export type SlotState = "ahead" | "now" | "ended";
 
 export function SlotRow({ slot, zone, state, onOpen }: { slot: Slot; zone: string; state: SlotState; onOpen: (slot: Slot) => void }) {
   const count = slot.sittings.length;
-  const { languages, length } = slotTags(slot);
+  const languages = languageTags(slot);
   const shown = languages.slice(0, MAX_LANGUAGE_TAGS);
   const more = languages.length - shown.length;
+  const length = slot.durationMinutes === 60 ? null : fmtDuration(slot.durationMinutes);
   const label = [
     fmtTime(slot.start, zone),
     `${count} ${count === 1 ? "sitting" : "sittings"}`,
-    ...languages.map((t) => t.label),
+    ...languages.map(tagTitle),
     length ?? "",
     state === "now" ? "in progress" : "",
   ]
@@ -82,7 +85,7 @@ export function SlotRow({ slot, zone, state, onOpen }: { slot: Slot; zone: strin
       <span className="text-muted-foreground tabular-nums">{count}</span>
       <span className="ml-auto flex items-center gap-1">
         {shown.map((t) => (
-          <LanguageMark key={t.codes[0]} tag={t} />
+          <LanguageTagView key={t.codes[0]} tag={t} />
         ))}
         {more > 0 && <span className="text-[10px] text-muted-foreground">+{more}</span>}
         {length && <span className="rounded-sm border px-1 text-[10px] leading-4 whitespace-nowrap text-muted-foreground">{length}</span>}

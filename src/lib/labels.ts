@@ -1,7 +1,7 @@
 // Turns listing data into the short strings the calendar shows.
 import { TZDate } from "@date-fns/tz";
 import type { Listing, ScheduleRule } from "@/schema/listing";
-import type { Sitting } from "@/lib/expand";
+import { WEEKDAYS, type Sitting } from "@/lib/expand";
 
 const lang = new Intl.DisplayNames(["en"], { type: "language" });
 const region = new Intl.DisplayNames(["en"], { type: "region" });
@@ -21,8 +21,8 @@ export const countryName = (code: string) => {
   }
 };
 
-/** The name of a language in itself, capitalised, then in English: "Español (Spanish)". */
-export function languageLabel(code: string): string {
+/** What a language tag says on hover: the name in the language itself, then in English, "Español (Spanish)". */
+export function languageTitle(code: string): string {
   let native = code;
   try {
     native = new Intl.DisplayNames([code], { type: "language" }).of(code) ?? code;
@@ -113,7 +113,6 @@ export function fmtDate(d: Date, zone: string, opts: Intl.DateTimeFormatOptions 
   return new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone }).format(d);
 }
 
-const WEEKDAYS: ScheduleRule["weekdays"] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const WEEKDAY_NAME: Record<ScheduleRule["weekdays"][number], string> = {
   sun: "Sun",
   mon: "Mon",

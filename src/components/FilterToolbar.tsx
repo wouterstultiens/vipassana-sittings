@@ -5,15 +5,14 @@
 import * as React from "react";
 import { ChevronDownIcon, FilterXIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
-import { activeCount, DURATION_LABEL, EMPTY_FILTERS, toggle, type Filters } from "@/lib/filters";
+import { activeCount, DURATION_LABEL, EMPTY_FILTERS, toggle, type Filters, type SetFilters } from "@/lib/filters";
 import { languageName, MEDIUM_LABEL, sortLanguages } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // The filters that hold a list of chosen options, as opposed to the two toggles.
 type ChoiceKey = "durations" | "languages" | "medium";
-type Choice<K extends ChoiceKey> = { key: K; label: string; options: { value: Filters[K][number]; label: string }[] };
-type SetFilters = (update: (f: Filters) => Filters) => void;
+type Choice = { key: ChoiceKey; label: string; options: { value: string; label: string }[] };
 
 const keysOf = <T extends string>(record: Record<T, string>) => Object.keys(record) as T[];
 
@@ -23,40 +22,39 @@ const browserLanguage = () => (typeof navigator === "undefined" ? "en" : navigat
 function useChoices(listings: Listing[]) {
   return React.useMemo(() => {
     const languages = sortLanguages([...new Set(listings.flatMap((l) => l.languages))], browserLanguage());
-    const durations: Choice<"durations"> = {
+    const durations: Choice = {
       key: "durations",
       label: "Length",
       options: keysOf(DURATION_LABEL).map((k) => ({ value: k, label: DURATION_LABEL[k] })),
     };
-    const language: Choice<"languages"> = {
+    const language: Choice = {
       key: "languages",
       label: "Language",
       options: languages.map((code) => ({ value: code, label: languageName(code) })),
     };
-    const medium: Choice<"medium"> = {
+    const medium: Choice = {
       key: "medium",
       label: "Video or audio",
       options: keysOf(MEDIUM_LABEL).map((k) => ({ value: k, label: MEDIUM_LABEL[k] })),
     };
-    return [durations, language, medium] as const;
+    return [durations, language, medium];
   }, [listings]);
 }
 
-const onToggle =
-  <K extends ChoiceKey>(setFilters: SetFilters, key: K) =>
-  (value: Filters[K][number]) =>
-    setFilters((prev) => ({ ...prev, [key]: toggle<Filters[K][number]>(prev[key], value) }));
+// The option lists are typed by their key; the menus only see strings.
+const onToggle = (setFilters: SetFilters, key: ChoiceKey) => (value: string) =>
+  setFilters((prev) => ({ ...prev, [key]: toggle<string>(prev[key], value) }));
 
 const flip = (setFilters: SetFilters, key: "teacherLed" | "questionsAndAnswers") => () =>
   setFilters((prev) => ({ ...prev, [key]: prev[key] ? null : true }));
 
-function Options<K extends ChoiceKey>({ choice, selected, onToggle }: { choice: Choice<K>; selected: Filters[K]; onToggle: (value: Filters[K][number]) => void }) {
+function Options({ choice, selected, onToggle }: { choice: Choice; selected: string[]; onToggle: (value: string) => void }) {
   return (
     <ul className="space-y-1">
       {choice.options.map((option) => (
         <li key={option.value}>
           <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-accent md:py-0.5">
-            <input type="checkbox" checked={(selected as Filters[K][number][]).includes(option.value)} onChange={() => onToggle(option.value)} />
+            <input type="checkbox" checked={selected.includes(option.value)} onChange={() => onToggle(option.value)} />
             {option.label}
           </label>
         </li>

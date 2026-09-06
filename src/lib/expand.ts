@@ -18,7 +18,8 @@ export type Sitting = {
 /** How far ahead of today the old student can walk, in weeks. */
 export const WEEKS_AHEAD = 8;
 
-const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+/** Weekdays in the order of Date.getDay(). */
+export const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 function matchesWeekOfMonth(rule: ScheduleRule, d: TZDate): boolean {
   if (!rule.weeksOfMonth) return true;

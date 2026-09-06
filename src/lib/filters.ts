@@ -1,19 +1,26 @@
 // The filter state of the toolbar and the two questions it answers: does this
 // listing pass, and does this sitting pass. The calendar itself answers "which
 // weekday" and "which hour", so no filter repeats that.
-import type { Listing } from "@/schema/listing";
+import { z } from "zod";
+import { Medium, type Listing } from "@/schema/listing";
 import type { Sitting } from "@/lib/expand";
 import { languageName, MEDIUM_LABEL } from "@/lib/labels";
 
-export type DurationBand = "hour" | "long" | "day";
+export const DurationBand = z.enum(["hour", "long", "day"]);
+export type DurationBand = z.infer<typeof DurationBand>;
 
-export type Filters = {
-  durations: DurationBand[];
-  languages: string[];
-  medium: Listing["medium"][];
-  teacherLed: boolean | null;
-  questionsAndAnswers: boolean | null;
-};
+// A schema, not only a type, because the filters come back from local storage.
+export const Filters = z.object({
+  durations: z.array(DurationBand),
+  languages: z.array(z.string()),
+  medium: z.array(Medium),
+  teacherLed: z.boolean().nullable(),
+  questionsAndAnswers: z.boolean().nullable(),
+});
+export type Filters = z.infer<typeof Filters>;
+
+/** How the toolbar and the sheets change the filters. */
+export type SetFilters = (update: (f: Filters) => Filters) => void;
 
 export const EMPTY_FILTERS: Filters = {
   durations: [],
@@ -65,7 +72,7 @@ export function toggle<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
 }
 
-/** One removable chip per chosen option, in the order of the toolbar. */
+/** One chosen option, able to remove itself, in the order of the toolbar. */
 export type AppliedFilter = { label: string; remove: (f: Filters) => Filters };
 
 export function appliedFilters(f: Filters): AppliedFilter[] {

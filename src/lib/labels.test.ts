@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { expandSittings } from "@/lib/expand";
-import { fmtRepeat, languageFlag, languageLabel, sortLanguages } from "@/lib/labels";
+import { fmtRepeat, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
 import { aListing, aRule } from "@/test/fixtures";
 
 describe("languageFlag", () => {
@@ -11,10 +11,10 @@ describe("languageFlag", () => {
   });
 });
 
-describe("languageLabel", () => {
+describe("languageTitle", () => {
   it("names the language in itself and in English", () => {
-    expect(languageLabel("es")).toBe("Español (Spanish)");
-    expect(languageLabel("zh")).toBe("中文 (Chinese)");
+    expect(languageTitle("es")).toBe("Español (Spanish)");
+    expect(languageTitle("zh")).toBe("中文 (Chinese)");
   });
 });
 
