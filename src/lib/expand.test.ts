@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Listing, ScheduleRule } from "@/schema/listing";
-import { expandSittings, localDayStart, localHour } from "@/lib/expand";
+import { expandSittings, localDayStart } from "@/lib/expand";
 
 const rule = (over: Partial<ScheduleRule> = {}): ScheduleRule => ({
   weekdays: ["mon"],
@@ -70,8 +70,7 @@ describe("expandSittings", () => {
     const to = new Date(Date.UTC(2026, 5, 8));
     const [s] = expandSittings([listing([r])], from, to, "Europe/Amsterdam");
     expect(s.local.getDate()).toBe(1);
-    expect(localHour(s)).toBe(15);
-    expect(s.minutesFromMidnight).toBe(15 * 60 + 30);
+    expect([s.local.getHours(), s.local.getMinutes()]).toEqual([15, 30]);
   });
 
   it("keeps a sitting that starts late on the last day inside the window", () => {
@@ -82,7 +81,7 @@ describe("expandSittings", () => {
     const r = rule({ weekdays: ["sun"], start: "23:30" });
     const [s] = expandSittings([listing([r])], from, to, zone);
     expect(s.local.getDate()).toBe(7); // Sunday 7 June, the last day of the window
-    expect(localHour(s)).toBe(23);
+    expect(s.local.getHours()).toBe(23);
   });
 });
 
@@ -95,7 +94,7 @@ describe("daylight saving in the old student's zone", () => {
     const from = new Date(Date.UTC(2026, 9, 25));
     const to = new Date(Date.UTC(2026, 9, 26));
     const rules = [rule({ weekdays: ["sun"], start: "00:30", timeZone: "UTC" }), rule({ weekdays: ["sun"], start: "01:30", timeZone: "UTC" })];
-    const hours = expandSittings([listing(rules)], from, to, zone).map(localHour);
+    const hours = expandSittings([listing(rules)], from, to, zone).map((s) => s.local.getHours());
     expect(hours).toEqual([2, 2]);
   });
 
@@ -104,7 +103,7 @@ describe("daylight saving in the old student's zone", () => {
     const from = new Date(Date.UTC(2026, 2, 29));
     const to = new Date(Date.UTC(2026, 2, 30));
     const r = rule({ weekdays: ["sun"], start: "02:30" });
-    const hours = expandSittings([listing([r])], from, to, zone).map(localHour);
+    const hours = expandSittings([listing([r])], from, to, zone).map((s) => s.local.getHours());
     expect(hours).not.toContain(2);
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeCount,
+  appliedFilters,
   durationBand,
   EMPTY_FILTERS,
   listingMatches,
@@ -92,5 +93,19 @@ describe("toggle", () => {
   it("adds a value that is absent and drops one that is present", () => {
     expect(toggle([1, 2], 3)).toEqual([1, 2, 3]);
     expect(toggle([1, 2], 2)).toEqual([1]);
+  });
+});
+
+describe("appliedFilters", () => {
+  it("lists one chip per chosen option, each able to remove itself", () => {
+    const f = withFilters({ durations: ["long"], languages: ["es", "fr"], medium: ["audio"], teacherLed: true });
+    const chips = appliedFilters(f);
+    expect(chips.map((c) => c.label)).toEqual(["2 to 4 hours", "Spanish", "French", "Audio only", "Teacher led"]);
+    expect(chips[1].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["fr"], medium: ["audio"], teacherLed: true }));
+    expect(chips[4].remove(f)).toEqual(withFilters({ durations: ["long"], languages: ["es", "fr"], medium: ["audio"] }));
+  });
+
+  it("is empty when nothing is applied", () => {
+    expect(appliedFilters(EMPTY_FILTERS)).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@
 // weekday" and "which hour", so no filter repeats that.
 import type { Listing } from "@/schema/listing";
 import type { Sitting } from "@/lib/expand";
+import { languageName, MEDIUM_LABEL } from "@/lib/labels";
 
 export type DurationBand = "hour" | "long" | "day";
 
@@ -62,4 +63,17 @@ export function activeCount(f: Filters): number {
 
 export function toggle<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
+}
+
+/** One removable chip per chosen option, in the order of the toolbar. */
+export type AppliedFilter = { label: string; remove: (f: Filters) => Filters };
+
+export function appliedFilters(f: Filters): AppliedFilter[] {
+  return [
+    ...f.durations.map((d) => ({ label: DURATION_LABEL[d], remove: (p: Filters) => ({ ...p, durations: toggle(p.durations, d) }) })),
+    ...f.languages.map((c) => ({ label: languageName(c), remove: (p: Filters) => ({ ...p, languages: toggle(p.languages, c) }) })),
+    ...f.medium.map((m) => ({ label: MEDIUM_LABEL[m], remove: (p: Filters) => ({ ...p, medium: toggle(p.medium, m) }) })),
+    ...(f.teacherLed === null ? [] : [{ label: "Teacher led", remove: (p: Filters) => ({ ...p, teacherLed: null }) }]),
+    ...(f.questionsAndAnswers === null ? [] : [{ label: "With Q&A", remove: (p: Filters) => ({ ...p, questionsAndAnswers: null }) }]),
+  ];
 }
