@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Listing, ScheduleRule } from "@/schema/listing";
-import { expandSittings, hourInZone, localDayStart, localHour, weekStart } from "@/lib/expand";
+import { expandSittings, localDayStart, localHour } from "@/lib/expand";
 
 const rule = (over: Partial<ScheduleRule> = {}): ScheduleRule => ({
   weekdays: ["mon"],
@@ -74,17 +74,16 @@ describe("expandSittings", () => {
     expect(s.minutesFromMidnight).toBe(15 * 60 + 30);
   });
 
-  it("keeps a sitting that starts late on Sunday inside that week", () => {
-    const now = new Date(Date.UTC(2026, 5, 3, 12, 0));
+  it("keeps a sitting that starts late on the last day inside the window", () => {
+    const now = new Date(Date.UTC(2026, 5, 1, 12, 0));
     const zone = "Europe/Amsterdam";
-    const from = weekStart(now, zone);
+    const from = localDayStart(now, zone);
     const to = localDayStart(from, zone, 7);
     const r = rule({ weekdays: ["sun"], start: "23:30" });
     const [s] = expandSittings([listing([r])], from, to, zone);
-    expect(s.local.getDate()).toBe(7); // Sunday 7 June, the last day of that week
+    expect(s.local.getDate()).toBe(7); // Sunday 7 June, the last day of the window
     expect(localHour(s)).toBe(23);
   });
-
 });
 
 describe("daylight saving in the old student's zone", () => {
@@ -98,12 +97,6 @@ describe("daylight saving in the old student's zone", () => {
     const rules = [rule({ weekdays: ["sun"], start: "00:30", timeZone: "UTC" }), rule({ weekdays: ["sun"], start: "01:30", timeZone: "UTC" })];
     const hours = expandSittings([listing(rules)], from, to, zone).map(localHour);
     expect(hours).toEqual([2, 2]);
-  });
-
-  it("reads the wall clock hour, not the hours elapsed since local midnight", () => {
-    // 25 October 2026 is 25 hours long in Amsterdam, so counting from midnight
-    // would put 23:30 local in row 24.
-    expect(hourInZone(new Date(Date.UTC(2026, 9, 25, 22, 30)), zone)).toBe(23);
   });
 
   it("leaves the skipped hour of the spring change empty", () => {

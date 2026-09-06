@@ -16,6 +16,10 @@ _Avoid_: event, record, entry
 One concrete occurrence of a listing at a specific date, start time, and duration. This is what the calendar shows. A sitting can last one hour or a whole day.
 _Avoid_: session, meeting, occurrence, course
 
+**Slot**:
+All sittings on one day that start at the same instant and last as long, with the length rounded to the half hour. One block on the calendar; the old student picks a sitting from it.
+_Avoid_: group, cluster, cell, chip
+
 **Schedule rule**:
 A recurrence extracted from a listing: which weekdays, which weeks of the month if not every week, what start time, how long, and in which timezone. One listing can carry several schedule rules. A listing with no schedule rule still exists and is shown without a place on the calendar.
 _Avoid_: schedule, recurrence, RRULE

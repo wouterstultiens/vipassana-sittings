@@ -1,6 +1,6 @@
-// The filter toolbar: one popover dropdown per field, two toggles, a Clear
-// button, and the count of what is shown. The calendar answers "which day" and
-// "which hour" on its own, so the toolbar asks only what the grid cannot show.
+// The filter toolbar: one popover dropdown per field, two toggles, and a Clear
+// button. The calendar answers "which day" and "which hour" on its own, so the
+// toolbar asks only what the grid cannot show.
 import * as React from "react";
 import { ChevronDownIcon, FilterXIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
@@ -76,14 +76,10 @@ export function FilterToolbar({
   listings,
   filters,
   setFilters,
-  shown,
-  total,
 }: {
   listings: Listing[];
   filters: Filters;
   setFilters: React.Dispatch<React.SetStateAction<Filters>>;
-  shown: number;
-  total: number;
 }) {
   const languages = React.useMemo(
     () =>
@@ -132,9 +128,6 @@ export function FilterToolbar({
           <FilterXIcon /> Clear
         </Button>
       )}
-      <span className="ml-auto text-xs text-muted-foreground">
-        {shown} of {total} sittings this week
-      </span>
     </div>
   );
 }

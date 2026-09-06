@@ -16,7 +16,8 @@ export type Sitting = {
   crossesMidnight: boolean; // end falls on the next local day
 };
 
-/** How far ahead of the current week the old student can walk. */
+/** How far the old student can walk from today, in weeks. */
+export const WEEKS_BACK = 2;
 export const WEEKS_AHEAD = 8;
 
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
@@ -67,18 +68,8 @@ export function expandSittings(listings: Listing[], from: Date, to: Date, zone: 
 /** The grid row a sitting belongs to: the hour it starts in the old student's zone. */
 export const localHour = (s: Sitting): number => Math.floor(s.minutesFromMidnight / 60);
 
-/** The hour an instant falls in on the wall clock of the given zone. */
-export const hourInZone = (d: Date, zone: string): number => new TZDate(d.getTime(), zone).getHours();
-
 /** Midnight at the start of the given local day, as an instant. */
 export function localDayStart(d: Date, zone: string, offsetDays = 0): Date {
   const z = new TZDate(d.getTime(), zone);
   return new Date(new TZDate(z.getFullYear(), z.getMonth(), z.getDate() + offsetDays, 0, 0, zone).getTime());
-}
-
-/** Monday 00:00 of the week holding `d`, in the old student's zone. */
-export function weekStart(d: Date, zone: string): Date {
-  const z = new TZDate(d.getTime(), zone);
-  const back = (z.getDay() + 6) % 7;
-  return localDayStart(d, zone, -back);
 }

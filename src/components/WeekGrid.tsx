@@ -1,41 +1,26 @@
-// The calendar: a Monday-to-Sunday grid with one row per hour of the old
-// student's day. Each cell holds the sittings that start in that hour. Opening
-// one opens the detail panel.
+// The calendar: seven days from today, drawn to scale. Each day is a column of
+// 24 hours, and every slot is a block whose top is its start and whose height
+// is its length. Opening a sitting opens the detail panel.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
-import { expandSittings, hourInZone, localDayStart, localHour, weekStart, WEEKS_AHEAD, type Sitting } from "@/lib/expand";
+import { expandSittings, localDayStart, WEEKS_AHEAD, WEEKS_BACK, type Sitting } from "@/lib/expand";
 import { EMPTY_FILTERS, sittingMatches, type Filters } from "@/lib/filters";
-import { durationTag, fmtDayMonth, fmtDayMonthYear, fmtDayOfMonth, fmtTime, fmtWeekday } from "@/lib/labels";
+import { placeSlots, slotsOf } from "@/lib/slots";
+import { fmtDayMonth, fmtDayMonthYear, fmtDayOfMonth, fmtWeekday } from "@/lib/labels";
 import { FilterToolbar } from "@/components/FilterToolbar";
 import { Notice } from "@/components/Notice";
 import { SittingSheet } from "@/components/SittingSheet";
+import { SlotBlock } from "@/components/SlotBlock";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const PER_CELL = 3;
+/** Pixels per hour. 24 hours fit a laptop screen under the toolbar. */
+const HOUR_PX = 30;
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
-
-function GridSitting({ sitting, zone, past, onOpen }: { sitting: Sitting; zone: string; past: boolean; onOpen: () => void }) {
-  const tag = durationTag(sitting.rule.durationMinutes);
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      title={sitting.listing.name}
-      className={`flex w-full items-center gap-1 truncate rounded border px-1 py-0.5 text-left text-[11px] leading-tight hover:shadow ${
-        sitting.listing.teacherLed
-          ? "border-primary/40 bg-primary/15"
-          : "border-amber-300/60 bg-amber-100/70 dark:border-amber-500/30 dark:bg-amber-500/10"
-      } ${tag ? "border-l-4 border-l-primary" : ""} ${past ? "opacity-50" : ""}`}
-    >
-      <span className="font-semibold tabular-nums">{fmtTime(sitting.start, zone)}</span>
-      <span className="truncate">{sitting.listing.name}</span>
-      {tag && <span className="ml-auto shrink-0 rounded bg-background/70 px-1 tabular-nums">{tag}</span>}
-    </button>
-  );
-}
+const y = (minutes: number) => (minutes / 60) * HOUR_PX;
 
 export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: string }) {
   // The server render knows neither the old student's zone nor the current
@@ -45,137 +30,123 @@ export function WeekGrid({ listings, builtAt }: { listings: Listing[]; builtAt: 
   React.useEffect(() => setView({ zone: oldStudentZone(), now: new Date() }), []);
   const { zone, now } = view;
 
-  const [weeksAhead, setWeeksAhead] = React.useState(0);
+  const [weeks, setWeeks] = React.useState(0);
   const [filters, setFilters] = React.useState<Filters>(EMPTY_FILTERS);
-  const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [open, setOpen] = React.useState<Sitting | null>(null);
 
-  const thisWeek = weekStart(now, zone);
-  const from = localDayStart(thisWeek, zone, 7 * weeksAhead);
+  const from = localDayStart(now, zone, 7 * weeks);
   const to = localDayStart(from, zone, 7);
   const days = Array.from({ length: 7 }, (_, i) => localDayStart(from, zone, i));
   const dayEnd = (i: number) => days[i + 1] ?? to;
 
   const all = React.useMemo(() => expandSittings(listings, from, to, zone), [listings, from.getTime(), to.getTime(), zone]);
   const shown = all.filter((s) => sittingMatches(s, filters));
-  const byDay = days.map((d, i) => shown.filter((s) => s.start >= d && s.start < dayEnd(i)));
+  const placedByDay = days.map((d, i) => placeSlots(slotsOf(shown.filter((s) => s.start >= d && s.start < dayEnd(i)))));
   const todayIdx = days.findIndex((d, i) => now >= d && now < dayEnd(i));
-  const nowHour = hourInZone(now, zone);
-
-  // Open on the hour the old student is in, not on the empty small hours.
-  const focusRow = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    focusRow.current?.scrollIntoView({ block: "start" });
-  }, [zone]);
+  const nowMinutes = todayIdx === -1 ? null : (now.getTime() - days[todayIdx].getTime()) / 60_000;
 
   return (
-    <div className="mx-auto flex h-screen max-w-[1400px] flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-        <h1 className="text-lg font-semibold">Virtual group sittings</h1>
-        <span className="text-sm text-muted-foreground">
-          for old students · every listing on dhamma.org, in your time
-        </span>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Times in</span>
-          <ZoneSelect value={zone} onChange={(z) => setView((v) => ({ ...v, zone: z }))} />
-          <ThemeToggle />
+    <TooltipProvider>
+      <div className="mx-auto flex h-screen max-w-[1400px] flex-col">
+        <h1 className="sr-only">Virtual group sittings</h1>
+
+        <div className="flex flex-wrap items-center gap-2 border-b px-3 py-1.5">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            disabled={weeks === -WEEKS_BACK}
+            onClick={() => setWeeks((w) => w - 1)}
+            aria-label="Previous week"
+          >
+            <ChevronLeftIcon />
+          </Button>
+          <Button variant="outline" size="sm" disabled={weeks === 0} onClick={() => setWeeks(0)}>
+            Today
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            disabled={weeks === WEEKS_AHEAD}
+            onClick={() => setWeeks((w) => w + 1)}
+            aria-label="Next week"
+          >
+            <ChevronRightIcon />
+          </Button>
+          <span className="ml-1 text-sm font-medium tabular-nums">
+            {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
+          </span>
+          <div className="mx-1 h-6 w-px bg-border" />
+          <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} />
+          <div className="ml-auto flex items-center gap-2">
+            <ZoneSelect value={zone} onChange={(z) => setView((v) => ({ ...v, zone: z }))} />
+            <ThemeToggle />
+          </div>
         </div>
-      </header>
 
-      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
-        <Button
-          variant="outline"
-          size="icon-sm"
-          disabled={weeksAhead === 0}
-          onClick={() => setWeeksAhead((w) => w - 1)}
-          aria-label="Previous week"
-        >
-          <ChevronLeftIcon />
-        </Button>
-        <Button variant="outline" size="sm" disabled={weeksAhead === 0} onClick={() => setWeeksAhead(0)}>
-          Today
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          disabled={weeksAhead === WEEKS_AHEAD}
-          onClick={() => setWeeksAhead((w) => w + 1)}
-          aria-label="Next week"
-        >
-          <ChevronRightIcon />
-        </Button>
-        <span className="ml-1 text-sm font-medium tabular-nums">
-          {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
-        </span>
-        <div className="mx-2 h-6 w-px bg-border" />
-        <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} shown={shown.length} total={all.length} />
-      </div>
+        <div className="px-3 py-1">
+          <Notice compact />
+        </div>
 
-      <div className="px-4 pt-2">
-        <Notice compact />
-      </div>
-
-      <div className="flex-1 overflow-auto px-4 pb-4">
-        <div className="grid min-w-[900px] grid-cols-[3rem_repeat(7,minmax(0,1fr))]">
-          <div />
-          {days.map((d, i) => (
-            <div
-              key={i}
-              className={`sticky top-0 z-10 border-b bg-background py-1.5 text-center text-sm ${i === todayIdx ? "font-semibold text-primary" : ""}`}
-            >
-              {fmtWeekday(d, zone)}{" "}
-              <span className={i === todayIdx ? "rounded-full bg-primary px-1.5 text-primary-foreground" : "text-muted-foreground"}>
-                {fmtDayOfMonth(d, zone)}
-              </span>
-            </div>
-          ))}
-          {HOURS.map((h) => (
-            <React.Fragment key={h}>
+        <div className="flex-1 overflow-auto px-3 pb-3">
+          <div className="grid min-w-[700px] grid-cols-[2.75rem_repeat(7,minmax(0,1fr))]">
+            <div />
+            {days.map((d, i) => (
               <div
-                ref={h === nowHour ? focusRow : undefined}
-                className="border-t py-1 pr-1 text-right text-[10px] text-muted-foreground tabular-nums"
+                key={i}
+                className={`sticky top-0 z-10 border-b bg-background py-1 text-center text-sm ${i === todayIdx ? "font-semibold text-primary" : ""}`}
               >
-                {String(h).padStart(2, "0")}:00
+                {fmtWeekday(d, zone)}{" "}
+                <span className={i === todayIdx ? "rounded-full bg-primary px-1.5 text-primary-foreground" : "text-muted-foreground"}>
+                  {fmtDayOfMonth(d, zone)}
+                </span>
               </div>
-              {byDay.map((items, di) => {
-                const cell = items.filter((s) => localHour(s) === h);
-                const key = `${di}-${h}`;
-                const isOpen = expanded.has(key);
-                const visible = isOpen ? cell : cell.slice(0, PER_CELL);
-                return (
-                  <div
-                    key={di}
-                    className={`min-h-6 space-y-0.5 border-t border-l p-0.5 ${di === todayIdx ? "bg-primary/5" : ""} ${
-                      di === todayIdx && h === nowHour ? "border-t-2 border-t-red-500" : ""
-                    }`}
-                  >
-                    {visible.map((s) => (
-                      <GridSitting key={s.key} sitting={s} zone={zone} past={s.end < now} onOpen={() => setOpen(s)} />
-                    ))}
-                    {cell.length > PER_CELL && (
-                      <button
-                        className="w-full rounded px-1 text-left text-[11px] text-primary hover:underline"
-                        onClick={() =>
-                          setExpanded((e) => {
-                            const next = new Set(e);
-                            if (isOpen) next.delete(key);
-                            else next.add(key);
-                            return next;
-                          })
-                        }
-                      >
-                        {isOpen ? "show less" : `+${cell.length - PER_CELL} more`}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
+            ))}
 
-      <SittingSheet sitting={open} onClose={() => setOpen(null)} zone={zone} />
-    </div>
+            <div className="relative" style={{ height: 24 * HOUR_PX }}>
+              {HOURS.map((h) => (
+                <div
+                  key={h}
+                  className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums"
+                  style={{ top: y(h * 60) }}
+                >
+                  {h === 0 ? "" : `${String(h).padStart(2, "0")}:00`}
+                </div>
+              ))}
+            </div>
+            {placedByDay.map((placed, di) => (
+              <div
+                key={di}
+                className={`relative overflow-hidden border-l ${di === todayIdx ? "bg-primary/5" : ""}`}
+                style={{ height: 24 * HOUR_PX }}
+              >
+                {HOURS.map((h) => (
+                  <div key={h} className="absolute inset-x-0 border-t" style={{ top: y(h * 60) }} />
+                ))}
+                {placed.map(({ slot, lane, lanes }) => (
+                  <SlotBlock
+                    key={slot.key}
+                    slot={slot}
+                    zone={zone}
+                    past={slot.end < now}
+                    style={{
+                      top: y(slot.minutesFromMidnight),
+                      height: y(slot.durationMinutes) - 1,
+                      left: `calc(${(lane / lanes) * 100}% + 1px)`,
+                      width: `calc(${100 / lanes}% - 2px)`,
+                    }}
+                    onOpen={setOpen}
+                  />
+                ))}
+                {di === todayIdx && nowMinutes !== null && (
+                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-red-500" style={{ top: y(nowMinutes) }} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <SittingSheet sitting={open} onClose={() => setOpen(null)} zone={zone} />
+      </div>
+    </TooltipProvider>
   );
 }
