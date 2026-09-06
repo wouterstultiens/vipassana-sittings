@@ -1,20 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { expandSittings } from "@/lib/expand";
-import { fmtRepeat, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
+import { fmtLength, fmtRepeat, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
 import { aListing, aRule } from "@/test/fixtures";
 
 describe("languageFlag", () => {
-  it("maps the languages of the listings, and never English", () => {
+  it("maps the languages of the listings, English included", () => {
     expect(languageFlag("es")).toBe("ES");
     expect(languageFlag("hi")).toBe("IN");
-    expect(languageFlag("en")).toBeNull();
+    expect(languageFlag("en")).toBe("GB");
+    expect(languageFlag("eo")).toBeNull();
   });
 });
 
 describe("languageTitle", () => {
-  it("names the language in itself and in English", () => {
+  it("names the language in itself and in English, once when both are the same", () => {
     expect(languageTitle("es")).toBe("Español (Spanish)");
     expect(languageTitle("zh")).toBe("中文 (Chinese)");
+    expect(languageTitle("en")).toBe("English");
   });
 });
 
@@ -49,5 +51,14 @@ describe("fmtRepeat", () => {
   it("names the weeks of the month", () => {
     const [s] = week("Europe/Amsterdam", aRule({ weekdays: ["sun"], weeksOfMonth: [2, -1], start: "10:00" }));
     expect(fmtRepeat(s, "Europe/Amsterdam")).toBe("every 2nd and last Sun at 10:00");
+  });
+});
+
+describe("fmtLength", () => {
+  it("writes a slot length in half hours", () => {
+    expect(fmtLength(30)).toBe("30 min");
+    expect(fmtLength(90)).toBe("1½ h");
+    expect(fmtLength(180)).toBe("3 h");
+    expect(fmtLength(390)).toBe("6½ h");
   });
 });

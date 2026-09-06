@@ -1,5 +1,5 @@
-// The phone's filter tray: a bottom sheet with the filter fields, the result
-// count fixed at the top, and the timezone and theme at the bottom.
+// The phone's filter tray: a bottom sheet with the filter fields, and the
+// timezone and theme at the bottom.
 import { SlidersHorizontalIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { activeCount, EMPTY_FILTERS, type Filters, type SetFilters } from "@/lib/filters";
@@ -15,16 +15,12 @@ export function FilterSheet({
   setFilters,
   zone,
   setZone,
-  shown,
-  total,
 }: {
   listings: Listing[];
   filters: Filters;
   setFilters: SetFilters;
-  zone: string;
-  setZone: (zone: string) => void;
-  shown: number;
-  total: number;
+  zone: string | null;
+  setZone: (zone: string | null) => void;
 }) {
   const active = activeCount(filters);
   return (
@@ -37,9 +33,6 @@ export function FilterSheet({
       <SheetContent side="bottom" className="max-h-[88dvh] gap-0 rounded-t-xl p-0" showCloseButton={false}>
         <div className="flex items-center justify-between border-b px-4 py-3">
           <SheetTitle className="text-base">Filters</SheetTitle>
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {shown} of {total} sittings
-          </span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           <FilterFields listings={listings} filters={filters} setFilters={setFilters} />

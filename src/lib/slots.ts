@@ -1,5 +1,5 @@
-// Folds the sittings of one day into slots, the rows of a day list, and
-// works out which language tags a row carries and whether it has ended.
+// Folds the sittings of one day into slots, the rows of a day list, works out
+// which language tags a row carries, and how many of them fit.
 import type { Sitting } from "@/lib/expand";
 import { languageFlag, type LanguageFlag } from "@/lib/labels";
 
@@ -39,9 +39,15 @@ export function slotsOf(sittings: Sitting[]): Slot[] {
 /** One language tag: a flag, or the code when no flag is mapped. Languages that share a flag share a tag. */
 export type LanguageTag = { flag: LanguageFlag | null; codes: string[] };
 
-/** The languages of the sittings that do not offer English, sorted, one tag per flag. */
+const englishFirst = (a: string, b: string) => (a === "en" ? -1 : b === "en" ? 1 : a.localeCompare(b));
+
+/**
+ * Every language on offer in the slot, English first, one tag per flag. So a
+ * row with only a Spanish flag has no English, and a row with both flags has
+ * both.
+ */
 export function languageTags(slot: Slot): LanguageTag[] {
-  const codes = [...new Set(slot.sittings.filter((s) => !s.listing.languages.includes("en")).flatMap((s) => s.listing.languages))].sort();
+  const codes = [...new Set(slot.sittings.flatMap((s) => s.listing.languages))].sort(englishFirst);
   const byFlag = new Map<string, LanguageTag>();
   for (const code of codes) {
     const flag = languageFlag(code);
@@ -52,10 +58,21 @@ export function languageTags(slot: Slot): LanguageTag[] {
   return [...byFlag.values()];
 }
 
-/** Splits today's slots into the ones that have ended and the rest, which are in progress or ahead. */
-export function endedSlots(slots: Slot[], now: Date): { ended: Slot[]; rest: Slot[] } {
-  return {
-    ended: slots.filter((s) => s.end <= now),
-    rest: slots.filter((s) => s.end > now),
-  };
+// Widths in px of what a row holds, near enough to decide how many tags fit.
+const TAG_WIDTH = 25; // a 21 px flag and its 4 px gap
+const MORE_WIDTH = 20; // "+N"
+const LENGTH_WIDTH = 34; // "2½ h"
+const FIXED_WIDTH = 78; // padding, gaps, the time, and a one-digit count
+const DIGIT_WIDTH = 8;
+
+/**
+ * How many language tags a row of the given width shows: all of them when
+ * they fit, else as many as fit next to a "+N". Before the row is measured
+ * (width 0) it shows up to three.
+ */
+export function tagsThatFit(count: number, rowWidth: number, digits: number, hasLength: boolean): number {
+  if (rowWidth <= 0) return Math.min(count, 3);
+  const room = rowWidth - FIXED_WIDTH - DIGIT_WIDTH * (digits - 1) - (hasLength ? LENGTH_WIDTH : 0) + 4; // the last tag has no gap
+  if (count * TAG_WIDTH <= room) return count;
+  return Math.max(1, Math.floor((room - MORE_WIDTH) / TAG_WIDTH));
 }

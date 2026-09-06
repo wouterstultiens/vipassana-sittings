@@ -21,11 +21,19 @@ All sittings on one day that start at the same instant and last as long, with th
 _Avoid_: group, cluster, cell, block
 
 **Day list**:
-The slots of one day in start order. The calendar shows seven day lists side by side on a laptop, and stacked in one scroll on a phone.
+The slots of one day in start order, on the hour axis. The calendar shows seven day lists side by side on a laptop, and stacked in one scroll on a phone.
 _Avoid_: column, agenda, timetable
 
+**Hour axis**:
+The gutter of 24 hours on the left of the day lists. Each day list has one cell per hour that holds the slots starting in that hour, so the rows of one hour line up across the days.
+_Avoid_: timeline, time scale, grid
+
+**Day strip**:
+The row of seven days under the toolbar on a phone. A tap scrolls to that day list, and the day in view is marked.
+_Avoid_: tabs, day picker, date bar
+
 **Tag**:
-A short mark on a slot for what varies between slots: a flag for a language other than English, or a length other than one hour.
+A short mark on a slot for what varies between slots: a flag per language on offer, or a length other than one hour.
 _Avoid_: chip, badge, label
 
 

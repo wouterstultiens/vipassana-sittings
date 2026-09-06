@@ -1,19 +1,22 @@
-// The calendar: seven day lists from today, side by side on a laptop and
-// stacked in one scroll on a phone. Filters and the timezone come back from
-// local storage on the next visit. A row opens the sitting sheet.
+// The calendar: seven day lists from today on one hour axis, side by side on
+// a laptop and stacked in one scroll on a phone, under a toolbar that sticks
+// to the top. Filters and the timezone come back from local storage on the
+// next visit. A row opens the sitting sheet.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
 import { EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
-import { fmtDayMonth, fmtDayMonthYear } from "@/lib/labels";
+import { fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
 import { slotsOf, type Slot } from "@/lib/slots";
+import { useSize } from "@/hooks/use-size";
+import { usePhone } from "@/hooks/use-phone";
 import { AppliedFilters } from "@/components/AppliedFilters";
-import { DayList } from "@/components/DayList";
+import { dayId, DayStrip } from "@/components/DayStrip";
 import { FilterSheet } from "@/components/FilterSheet";
 import { FilterToolbar } from "@/components/FilterToolbar";
-import { Notice } from "@/components/Notice";
+import { HourGrid, NOW_HOUR_ID, type Day } from "@/components/HourGrid";
 import { SittingSheet } from "@/components/SittingSheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
@@ -26,7 +29,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const [prefs, setPrefs] = React.useState<Preferences | null>(null);
   const [now, setNow] = React.useState(() => new Date(builtAt));
   React.useEffect(() => {
-    setPrefs(readPreferences(localStorage) ?? { zone: oldStudentZone(), filters: EMPTY_FILTERS });
+    setPrefs(readPreferences(localStorage) ?? { zone: null, filters: EMPTY_FILTERS });
     setNow(new Date());
     const tick = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(tick);
@@ -35,10 +38,11 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     if (prefs) writePreferences(localStorage, prefs);
   }, [prefs]);
 
-  const zone = prefs?.zone ?? "UTC";
+  // A null zone follows the device, so a traveller's calendar moves with them.
+  const zone = prefs ? (prefs.zone ?? oldStudentZone()) : "UTC";
   const filters = prefs?.filters ?? EMPTY_FILTERS;
   const setFilters: SetFilters = (update) => setPrefs((p) => p && { ...p, filters: update(p.filters) });
-  const setZone = (z: string) => setPrefs((p) => p && { ...p, zone: z });
+  const setZone = (z: string | null) => setPrefs((p) => p && { ...p, zone: z });
 
   const [weeks, setWeeks] = React.useState(0);
   const [open, setOpen] = React.useState<Slot | null>(null);
@@ -50,8 +54,26 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
 
   const all = React.useMemo(() => expandSittings(listings, from, to, zone), [listings, from.getTime(), to.getTime(), zone]);
   const shown = all.filter((s) => sittingMatches(s, filters));
-  const slotsByDay = days.map((d, i) => slotsOf(shown.filter((s) => s.start >= d && s.start < dayEnd(i))));
   const todayIdx = days.findIndex((d, i) => now >= d && now < dayEnd(i));
+  const dayLists: Day[] = days.map((d, i) => ({
+    day: d,
+    slots: slotsOf(shown.filter((s) => s.start >= d && s.start < dayEnd(i))),
+    today: i === todayIdx,
+  }));
+  const nowHour = todayIdx === -1 ? null : hourIn(now, zone);
+  const phone = usePhone();
+
+  // The header's height feeds --header, so the day headers and the jumps land under it.
+  const [headerRef, { height: headerHeight }] = useSize<HTMLDivElement>();
+  const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView();
+
+  // Once, after the zone is known: open on the current hour, as a calendar does.
+  const scrolled = React.useRef(false);
+  React.useEffect(() => {
+    if (!prefs || scrolled.current) return;
+    scrolled.current = true;
+    jumpTo(NOW_HOUR_ID);
+  }, [prefs]);
 
   const previous = (
     <Button variant="outline" size="icon-sm" disabled={weeks === 0} onClick={() => setWeeks((w) => w - 1)} aria-label="Previous week">
@@ -65,54 +87,52 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   );
 
   return (
-    <div className="mx-auto max-w-[1400px]">
+    <div className="mx-auto max-w-[1400px]" style={{ "--header": `${headerHeight}px` } as React.CSSProperties}>
       <h1 className="sr-only">Virtual group sittings</h1>
 
-      <div className="hidden flex-wrap items-center gap-2 border-b px-3 py-1.5 md:flex">
-        {previous}
-        <Button variant="outline" size="sm" disabled={weeks === 0} onClick={() => setWeeks(0)}>
-          Today
-        </Button>
-        {next}
-        <span className="ml-1 text-sm font-medium tabular-nums">
-          {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
-        </span>
-        <div className="mx-1 h-6 w-px bg-border" />
-        <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} />
-        <div className="ml-auto flex items-center gap-2">
-          <ZoneSelect value={zone} onChange={setZone} />
-          <ThemeToggle />
+      <div ref={headerRef} className="sticky top-0 z-20 border-b bg-background">
+        <div className="hidden flex-wrap items-center gap-2 px-3 py-1.5 md:flex">
+          {previous}
+          <Button variant="outline" size="sm" disabled={weeks === 0} onClick={() => setWeeks(0)}>
+            Today
+          </Button>
+          {next}
+          <span className="ml-1 text-sm font-medium tabular-nums">
+            {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
+          </span>
+          <div className="mx-1 h-6 w-px bg-border" />
+          <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} />
+          <div className="ml-auto flex items-center gap-2">
+            <ZoneSelect value={prefs?.zone ?? null} onChange={setZone} />
+            <ThemeToggle />
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-2 border-b px-3 py-1.5 md:hidden">
-        {previous}
-        {next}
-        <span className="ml-1 text-sm font-medium tabular-nums">
-          {fmtDayMonth(from, zone)} – {fmtDayMonth(days[6], zone)}
-        </span>
-        <div className="ml-auto">
-          <FilterSheet
-            listings={listings}
-            filters={filters}
-            setFilters={setFilters}
-            zone={zone}
-            setZone={setZone}
-            shown={shown.length}
-            total={all.length}
-          />
+        <div className="flex items-center gap-2 px-3 py-1.5 md:hidden">
+          {previous}
+          {next}
+          <span className="ml-1 text-sm font-medium tabular-nums">
+            {fmtDayMonth(from, zone)} – {fmtDayMonth(days[6], zone)}
+          </span>
+          <div className="ml-auto">
+            <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
+          </div>
         </div>
+        <DayStrip className="md:hidden" days={dayLists} zone={zone} headerHeight={headerHeight} onPick={(i) => jumpTo(dayId(i))} />
       </div>
 
-      <div className="px-3 py-1">
-        <Notice compact />
-      </div>
-      <AppliedFilters filters={filters} setFilters={setFilters} shown={shown.length} total={all.length} />
+      <AppliedFilters filters={filters} setFilters={setFilters} />
 
-      <div className="grid grid-cols-1 px-3 pb-6 md:grid-cols-7 md:gap-x-2">
-        {days.map((d, i) => (
-          <DayList key={d.getTime()} day={d} slots={slotsByDay[i]} zone={zone} now={now} today={i === todayIdx} onOpen={setOpen} />
-        ))}
+      <div className="px-3 pb-6">
+        {phone ? (
+          dayLists.map((d, i) => (
+            <div key={d.day.getTime()} id={dayId(i)} className="scroll-mt-(--header)">
+              <HourGrid days={[d]} zone={zone} now={now} nowHour={d.today ? nowHour : null} onOpen={setOpen} />
+            </div>
+          ))
+        ) : (
+          <HourGrid days={dayLists} zone={zone} now={now} nowHour={nowHour} onOpen={setOpen} />
+        )}
       </div>
 
       <SittingSheet slot={open} onClose={() => setOpen(null)} zone={zone} />

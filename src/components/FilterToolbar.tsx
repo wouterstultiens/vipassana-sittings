@@ -6,13 +6,14 @@ import * as React from "react";
 import { ChevronDownIcon, FilterXIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { activeCount, DURATION_LABEL, EMPTY_FILTERS, toggle, type Filters, type SetFilters } from "@/lib/filters";
-import { languageName, MEDIUM_LABEL, sortLanguages } from "@/lib/labels";
+import { languageFlag, languageName, MEDIUM_LABEL, sortLanguages, type LanguageFlag } from "@/lib/labels";
+import { FlagIcon } from "@/components/FlagIcon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // The filters that hold a list of chosen options, as opposed to the two toggles.
 type ChoiceKey = "durations" | "languages" | "medium";
-type Choice = { key: ChoiceKey; label: string; options: { value: string; label: string }[] };
+type Choice = { key: ChoiceKey; label: string; options: { value: string; label: string; flag?: LanguageFlag | null }[] };
 
 const keysOf = <T extends string>(record: Record<T, string>) => Object.keys(record) as T[];
 
@@ -30,11 +31,11 @@ function useChoices(listings: Listing[]) {
     const language: Choice = {
       key: "languages",
       label: "Language",
-      options: languages.map((code) => ({ value: code, label: languageName(code) })),
+      options: languages.map((code) => ({ value: code, label: languageName(code), flag: languageFlag(code) })),
     };
     const medium: Choice = {
       key: "medium",
-      label: "Video or audio",
+      label: "Medium",
       options: keysOf(MEDIUM_LABEL).map((k) => ({ value: k, label: MEDIUM_LABEL[k] })),
     };
     return [durations, language, medium];
@@ -55,6 +56,7 @@ function Options({ choice, selected, onToggle }: { choice: Choice; selected: str
         <li key={option.value}>
           <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-accent md:py-0.5">
             <input type="checkbox" checked={selected.includes(option.value)} onChange={() => onToggle(option.value)} />
+            {option.flag && <FlagIcon flag={option.flag} />}
             {option.label}
           </label>
         </li>

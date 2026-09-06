@@ -22,6 +22,12 @@ describe("preferences", () => {
     expect(readPreferences(storage)).toEqual(prefs);
   });
 
+  it("keeps a null zone, which means follow the device", () => {
+    const storage = memory();
+    writePreferences(storage, { zone: null, filters: EMPTY_FILTERS });
+    expect(readPreferences(storage)).toEqual({ zone: null, filters: EMPTY_FILTERS });
+  });
+
   it("gives nothing when the store is empty or broken", () => {
     const storage = memory();
     expect(readPreferences(storage)).toBeNull();
