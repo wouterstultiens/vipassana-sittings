@@ -8,15 +8,13 @@ import type { Listing } from "@/schema/listing";
 import { expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
 import { EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
 import { fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
-import { FIRST_PAGE, turnDay, type Page } from "@/lib/page";
+import { FIRST_PAGE, type Page } from "@/lib/page";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
 import { slotsOf, type Slot } from "@/lib/slots";
 import { useSize } from "@/hooks/use-size";
 import { usePhone } from "@/hooks/use-phone";
-import { useSwipe } from "@/hooks/use-swipe";
 import { AppliedFilters } from "@/components/AppliedFilters";
-import { DayStrip } from "@/components/DayStrip";
-import { FilterSheet } from "@/components/FilterSheet";
+import { PhoneDayNav } from "@/components/prototype/PhoneDayNav";
 import { FilterToolbar } from "@/components/FilterToolbar";
 import { HourGrid, hourId, hourInView, type Day } from "@/components/HourGrid";
 import { SittingSheet } from "@/components/SittingSheet";
@@ -102,7 +100,6 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     jumpTo(keptHour.current);
     keptHour.current = null;
   }, [page]);
-  const swipe = useSwipe((dir) => turnTo(turnDay(page, dir)));
 
   const previous = (
     <Button variant="outline" size="icon-sm" disabled={weeks === 0} onClick={() => turnTo({ weeks: weeks - 1, day: 0 })} aria-label="Previous week">
@@ -119,48 +116,49 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     <div className="mx-auto max-w-[1400px]" style={{ "--header": `${headerHeight}px` } as React.CSSProperties}>
       <h1 className="sr-only">Virtual group sittings</h1>
 
-      <div ref={headerRef} className="sticky top-0 z-20 border-b bg-background">
-        <div className="hidden flex-wrap items-center gap-2 px-3 py-1.5 md:flex">
-          {previous}
-          <Button variant="outline" size="sm" disabled={weeks === 0} onClick={() => turnTo(FIRST_PAGE)}>
-            Today
-          </Button>
-          {next}
-          <span className="ml-1 text-sm font-medium tabular-nums">
-            {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
-          </span>
-          <div className="mx-1 h-6 w-px bg-border" />
-          <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} />
-          <div className="ml-auto flex items-center gap-2">
-            <ZoneSelect value={prefs?.zone ?? null} onChange={setZone} />
-            <ThemeToggle />
+      {phone ? (
+        <PhoneDayNav
+          headerRef={headerRef}
+          dayLists={dayLists}
+          zone={zone}
+          now={now}
+          nowHour={nowHour}
+          page={page}
+          turnTo={turnTo}
+          setPage={setPage}
+          listings={listings}
+          filters={filters}
+          setFilters={setFilters}
+          prefZone={prefs?.zone ?? null}
+          setZone={setZone}
+          onOpen={setOpen}
+        />
+      ) : (
+        <>
+          <div ref={headerRef} className="sticky top-0 z-20 border-b bg-background">
+            <div className="flex flex-wrap items-center gap-2 px-3 py-1.5">
+              {previous}
+              <Button variant="outline" size="sm" disabled={weeks === 0} onClick={() => turnTo(FIRST_PAGE)}>
+                Today
+              </Button>
+              {next}
+              <span className="ml-1 text-sm font-medium tabular-nums">
+                {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
+              </span>
+              <div className="mx-1 h-6 w-px bg-border" />
+              <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} />
+              <div className="ml-auto flex items-center gap-2">
+                <ZoneSelect value={prefs?.zone ?? null} onChange={setZone} />
+                <ThemeToggle />
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-1.5 md:hidden">
-          {previous}
-          {next}
-          <span className="ml-1 text-sm font-medium tabular-nums">
-            {fmtDayMonth(from, zone)} – {fmtDayMonth(days[6], zone)}
-          </span>
-          <div className="ml-auto">
-            <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
+          <AppliedFilters filters={filters} setFilters={setFilters} />
+          <div className="px-3 pb-6">
+            <HourGrid days={dayLists} zone={zone} now={now} nowHour={nowHour} onOpen={setOpen} />
           </div>
-        </div>
-        <DayStrip className="md:hidden" days={dayLists} zone={zone} active={page.day} onPick={(day) => turnTo({ weeks, day })} />
-      </div>
-
-      <AppliedFilters filters={filters} setFilters={setFilters} />
-
-      <div className="px-3 pb-6">
-        {phone ? (
-          <div {...swipe} className="touch-pan-y">
-            <HourGrid days={[dayLists[page.day]]} zone={zone} now={now} nowHour={dayLists[page.day].today ? nowHour : null} onOpen={setOpen} />
-          </div>
-        ) : (
-          <HourGrid days={dayLists} zone={zone} now={now} nowHour={nowHour} onOpen={setOpen} />
-        )}
-      </div>
+        </>
+      )}
 
       <SittingSheet slot={open} onClose={() => setOpen(null)} zone={zone} />
     </div>
