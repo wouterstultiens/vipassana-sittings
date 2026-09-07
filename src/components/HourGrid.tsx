@@ -2,7 +2,7 @@
 // day, and in each hour cell the slots that start in that hour, one
 // fixed-height row each. The rows of one hour line up across the days, so
 // scrolling down is moving through the day, as on a calendar. The laptop
-// shows seven days in one grid; the phone stacks seven one-day grids.
+// shows seven days in one grid; the phone shows one day's grid at a time.
 import * as React from "react";
 import { fmtDayOfMonth, fmtWeekday, hourIn } from "@/lib/labels";
 import type { Slot } from "@/lib/slots";
@@ -17,8 +17,20 @@ const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 const stateOf = (slot: Slot, now: Date): SlotState => (slot.end <= now ? "ended" : slot.start <= now ? "now" : "ahead");
 
-/** The id of the current hour's gutter cell, where the page scrolls to on load. */
-export const NOW_HOUR_ID = "hour-now";
+/** The id of an hour's gutter cell, where the page scrolls to on load and when a day is turned. */
+export const hourId = (h: number) => `hour-${h}`;
+
+/** The hour whose gutter cell is at the top of the view, under the sticky headers. */
+export function hourInView(): number {
+  let active = 0;
+  for (const h of HOURS) {
+    const cell = document.getElementById(hourId(h));
+    if (!cell) continue;
+    const margin = parseFloat(getComputedStyle(cell).scrollMarginTop);
+    if (cell.getBoundingClientRect().top <= margin + 1) active = h;
+  }
+  return active;
+}
 
 // On a laptop the day headers stick under the toolbar, whose height is
 // --header. On a phone the day strip does that job.
@@ -65,9 +77,9 @@ export function HourGrid({
       {HOURS.map((h) => (
         <React.Fragment key={h}>
           <div
-            id={h === nowHour ? NOW_HOUR_ID : undefined}
+            id={hourId(h)}
             className={cn(
-              "border-t pt-0.5 pr-2 text-[11px] leading-4 tabular-nums [scroll-margin-top:calc(var(--header)+2.25rem)]",
+              "border-t pt-0.5 pr-2 text-[11px] leading-4 tabular-nums scroll-mt-(--header) md:[scroll-margin-top:calc(var(--header)+2.25rem)]",
               h === nowHour ? "font-semibold text-primary" : "text-muted-foreground",
             )}
           >
