@@ -7,7 +7,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
 import { EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
-import { fmtDayMonth, fmtDayMonthYear, fmtMonth, hourIn } from "@/lib/labels";
+import { fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
 import { slotsOf, type Slot } from "@/lib/slots";
 import { useSize } from "@/hooks/use-size";
@@ -136,17 +136,14 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     </>
   );
 
-  // The phone names only the month up top: the day strip at the bottom
-  // carries the weekday and the date, in reach of the thumb.
+  // The phone's toolbar holds only the filters and the theme: the day strip
+  // at the bottom carries the date, in reach of the thumb.
   const phoneView = (
     <>
       <div ref={headerRef} className="sticky top-0 z-20 border-b bg-background">
-        <div className="flex items-center gap-2 px-3 py-1.5">
-          <span className="text-sm font-semibold">{fmtMonth(shownDay.day, zone)}</span>
-          <div className="ml-auto flex items-center gap-2">
-            <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
-            <ThemeToggle />
-          </div>
+        <div className="flex items-center justify-end gap-2 px-3 py-1.5">
+          <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
+          <ThemeToggle />
         </div>
       </div>
       <AppliedFilters filters={filters} setFilters={setFilters} />

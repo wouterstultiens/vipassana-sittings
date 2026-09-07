@@ -29,7 +29,7 @@ The gutter of 24 hours on the left of the day lists. Each day list has one cell 
 _Avoid_: timeline, time scale, grid
 
 **Day strip**:
-The row of seven days fixed at the bottom of the screen on a phone, with the week arrows at its ends. A tap turns to that day list, and the day on screen is marked.
+The row of seven days fixed at the bottom of the screen on a phone, with the week arrows at its ends. A tap turns to that day list. The day on screen is marked and widens to show its month.
 _Avoid_: tabs, day picker, date bar
 
 **Tag**:
