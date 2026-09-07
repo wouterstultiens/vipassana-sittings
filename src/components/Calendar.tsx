@@ -105,6 +105,13 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     keptHour.current = null;
   }, [page]);
 
+  // On a phone a turn starts the new day from the top of the page, with the
+  // applied filters in view.
+  const turnFromTop = (next: Page) => {
+    setPage(next);
+    scrollTo(0, 0);
+  };
+
   const shownDay = dayLists[page.day];
   const laptop = (
     <>
@@ -159,9 +166,9 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
         days={dayLists}
         zone={zone}
         active={page.day}
-        onPick={(day) => turnTo({ weeks, day })}
-        previousWeek={weeks > 0 ? () => turnTo({ ...page, weeks: weeks - 1 }) : undefined}
-        nextWeek={weeks < WEEKS_AHEAD ? () => turnTo({ ...page, weeks: weeks + 1 }) : undefined}
+        onPick={(day) => turnFromTop({ weeks, day })}
+        previousWeek={weeks > 0 ? () => turnFromTop({ ...page, weeks: weeks - 1 }) : undefined}
+        nextWeek={weeks < WEEKS_AHEAD ? () => turnFromTop({ ...page, weeks: weeks + 1 }) : undefined}
       />
     </>
   );
