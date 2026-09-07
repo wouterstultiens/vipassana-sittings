@@ -1,10 +1,9 @@
-// The phone's filter tray: a bottom sheet with the filter fields, and the
-// timezone and theme at the bottom.
+// The phone's filter tray: a bottom sheet with the filter fields and the
+// timezone at the bottom.
 import { SlidersHorizontalIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { activeCount, EMPTY_FILTERS, type Filters, type SetFilters } from "@/lib/filters";
 import { FilterFields } from "@/components/FilterToolbar";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { ZoneSelect } from "@/components/ZoneSelect";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -36,9 +35,8 @@ export function FilterSheet({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           <FilterFields listings={listings} filters={filters} setFilters={setFilters} />
-          <div className="mt-6 flex items-center gap-2 border-t pt-4">
-            <ZoneSelect value={zone} onChange={setZone} className="h-9 max-w-none flex-1 text-sm" />
-            <ThemeToggle />
+          <div className="mt-6 border-t pt-4">
+            <ZoneSelect value={zone} onChange={setZone} className="h-9 w-full max-w-none text-sm" />
           </div>
         </div>
         <div className="flex gap-2 border-t p-3">

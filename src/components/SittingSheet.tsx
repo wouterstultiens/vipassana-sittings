@@ -1,6 +1,7 @@
 // The sheet a row opens: from the right on a laptop, full height from the
 // bottom on a phone. One sitting shows its details at once; several show a
-// list to pick from, and the pick replaces the list with a way back.
+// list to pick from, and the pick replaces the list. Every page starts with
+// the same back row: to the list from a picked sitting, else to the calendar.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Sitting } from "@/lib/expand";
@@ -12,20 +13,23 @@ import { SittingDetails } from "@/components/SittingDetails";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
-function SlotContent({ slot, zone }: { slot: Slot; zone: string }) {
-  const [picked, setPicked] = React.useState<Sitting | null>(slot.sittings.length === 1 ? slot.sittings[0] : null);
+const BackRow = ({ onBack }: { onBack: () => void }) => (
+  <div className="border-b px-3 py-2">
+    <Button variant="ghost" size="sm" onClick={onBack}>
+      <ChevronLeftIcon /> Back
+    </Button>
+  </div>
+);
+
+function SlotContent({ slot, zone, onClose }: { slot: Slot; zone: string; onClose: () => void }) {
+  const several = slot.sittings.length > 1;
+  const [picked, setPicked] = React.useState<Sitting | null>(several ? null : slot.sittings[0]);
   const time = fmtTime(slot.start, zone);
 
   if (picked) {
     return (
       <>
-        {slot.sittings.length > 1 && (
-          <div className="border-b px-3 py-2">
-            <Button variant="ghost" size="sm" onClick={() => setPicked(null)}>
-              <ChevronLeftIcon /> Back
-            </Button>
-          </div>
-        )}
+        <BackRow onBack={several ? () => setPicked(null) : onClose} />
         <SheetTitle className="sr-only">{picked.listing.name}</SheetTitle>
         <SittingDetails listing={picked.listing} sitting={picked} zone={zone} />
       </>
@@ -34,7 +38,8 @@ function SlotContent({ slot, zone }: { slot: Slot; zone: string }) {
 
   return (
     <>
-      <header className="border-b p-5 pr-12">
+      <BackRow onBack={onClose} />
+      <header className="border-b p-5">
         <div className="text-sm text-muted-foreground">{fmtDate(slot.start, zone)}</div>
         <SheetTitle className="text-2xl font-semibold tabular-nums">
           {time} – {fmtTime(slot.end, zone)}
@@ -71,7 +76,7 @@ export function SittingSheet({ slot, onClose, zone }: { slot: Slot | null; onClo
       {slot && (
         <SheetContent side={phone ? "bottom" : "right"} className={phone ? "h-dvh gap-0" : "gap-0 sm:max-w-lg"}>
           {/* Keyed on the slot, so a new row starts from its list again. */}
-          <SlotContent key={slot.key} slot={slot} zone={zone} />
+          <SlotContent key={slot.key} slot={slot} zone={zone} onClose={onClose} />
         </SheetContent>
       )}
     </Sheet>
