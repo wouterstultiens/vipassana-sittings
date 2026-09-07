@@ -1,12 +1,12 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import { Calendar } from "@/components/Calendar";
-import { loadListings } from "@/lib/load-listings";
+import { loadHosts } from "@/lib/load-hosts";
 
-const listings = loadListings();
+const hosts = loadHosts();
 const builtAt = new Date().toISOString();
 ---
 
 <Layout>
-  <Calendar client:load listings={listings} builtAt={builtAt} />
+  <Calendar client:load hosts={hosts} builtAt={builtAt} />
 </Layout>

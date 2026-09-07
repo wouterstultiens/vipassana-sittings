@@ -1,4 +1,4 @@
-import type { Listing } from "../src/schema/listing.ts";
+import type { Host } from "../src/schema/host.ts";
 
 const CUT = 120;
 
@@ -7,12 +7,10 @@ const preview = (value: unknown) => {
   return text.length <= CUT ? text : text.slice(0, CUT) + "…";
 };
 
-// The fields that moved between the stored record and the new one, one line
-// each. `extractedAt` moves on every extraction, so it is left out.
-export function diffFields(before: Listing, after: Listing): string[] {
-  const keys = Object.keys(after) as (keyof Listing)[];
+// The fields that moved between the stored host and the new one, one line each.
+export function diffFields(before: Host, after: Host): string[] {
+  const keys = Object.keys(after) as (keyof Host)[];
   return keys
-    .filter((key) => key !== "extractedAt")
     .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
     .map((key) => `${key}: ${preview(before[key])} -> ${preview(after[key])}`);
 }

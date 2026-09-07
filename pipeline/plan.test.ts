@@ -1,44 +1,24 @@
 import { describe, expect, it } from "vitest";
-import type { Listing } from "../src/schema/listing.ts";
+import type { Host } from "../src/schema/host.ts";
 import { needsExtraction, removedIds, unknownListIds } from "./plan.ts";
 
-const stored = (over: Partial<Listing> = {}) =>
-  ({ id: 1, apiHash: "a", pageHash: null, ...over }) as Listing;
+const stored = (over: Partial<Host> = {}) => ({ id: 1, inputHash: "a", ...over }) as Host;
 
 describe("needsExtraction", () => {
   it("extracts when no file is stored", () => {
-    expect(needsExtraction({ stored: null, apiHash: "a", pageHash: null, all: false })).toBe(true);
+    expect(needsExtraction({ stored: null, inputHash: "a", all: false })).toBe(true);
   });
 
-  it("leaves an unchanged listing alone", () => {
-    expect(needsExtraction({ stored: stored(), apiHash: "a", pageHash: null, all: false })).toBe(
-      false,
-    );
+  it("leaves an unchanged host alone", () => {
+    expect(needsExtraction({ stored: stored(), inputHash: "a", all: false })).toBe(false);
   });
 
-  it("extracts when the api hash differs", () => {
-    expect(needsExtraction({ stored: stored(), apiHash: "b", pageHash: null, all: false })).toBe(
-      true,
-    );
+  it("extracts when the input hash differs", () => {
+    expect(needsExtraction({ stored: stored(), inputHash: "b", all: false })).toBe(true);
   });
 
-  it("extracts when the page hash differs", () => {
-    const previous = stored({ pageHash: "p" });
-    expect(needsExtraction({ stored: previous, apiHash: "a", pageHash: "q", all: false })).toBe(
-      true,
-    );
-  });
-
-  it("extracts when a host page is added to a listing that had none", () => {
-    expect(needsExtraction({ stored: stored(), apiHash: "a", pageHash: "p", all: false })).toBe(
-      true,
-    );
-  });
-
-  it("extracts every listing under --all", () => {
-    expect(needsExtraction({ stored: stored(), apiHash: "a", pageHash: null, all: true })).toBe(
-      true,
-    );
+  it("extracts every host under --all", () => {
+    expect(needsExtraction({ stored: stored(), inputHash: "a", all: true })).toBe(true);
   });
 });
 
@@ -58,8 +38,6 @@ describe("removedIds", () => {
 
 describe("unknownListIds", () => {
   it("names hand-kept ids the api does not return", () => {
-    expect(
-      unknownListIds({ excludedIds: [9, 1], hostPageIds: [8, 2], apiIds: new Set([1, 2]) }),
-    ).toEqual([9, 8]);
+    expect(unknownListIds({ excludedIds: [9, 1], pageListIds: [8, 2], apiIds: new Set([1, 2]) })).toEqual([9, 8]);
   });
 });

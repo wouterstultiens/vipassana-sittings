@@ -10,12 +10,12 @@ describe("formatSummary", () => {
     expect(text).not.toContain("Failed");
   });
 
-  it("names every failed listing with its reason", () => {
+  it("names every failed host with its reason", () => {
     const text = formatSummary(summary({ failed: [{ id: 42, reason: "status 404" }] }));
     expect(text).toContain("42: status 404");
   });
 
-  it("names the listings without a schedule rule", () => {
+  it("names the hosts without a rule", () => {
     expect(formatSummary(summary({ withoutRule: [788, 890] }))).toContain("788, 890");
   });
 

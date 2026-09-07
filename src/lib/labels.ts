@@ -1,6 +1,6 @@
-// Turns listing data into the short strings the calendar shows.
+// Turns host data into the short strings the calendar shows.
 import { TZDate } from "@date-fns/tz";
-import type { Listing, ScheduleRule } from "@/schema/listing";
+import type { Host, Join, Rule } from "@/schema/host";
 
 const lang = new Intl.DisplayNames(["en"], { type: "language" });
 const region = new Intl.DisplayNames(["en"], { type: "region" });
@@ -83,7 +83,7 @@ export function sortLanguages(codes: string[]): string[] {
   return [...codes].sort((a, b) => languageName(a).localeCompare(languageName(b)));
 }
 
-export const PLATFORM_LABEL: Record<Listing["platform"], string> = {
+export const PLATFORM_LABEL: Record<Join["platform"], string> = {
   zoom: "Zoom",
   teams: "Teams",
   freeconferencecall: "FreeConferenceCall",
@@ -105,13 +105,13 @@ export function fmtSite(url: string): string {
   }
 }
 
-export const MEDIUM_LABEL: Record<Listing["medium"], string> = {
+export const MEDIUM_LABEL: Record<Host["medium"], string> = {
   video: "Video",
   audio: "Audio only",
   stream: "Live stream",
 };
 
-const WEEKDAY_NAME: Record<ScheduleRule["weekdays"][number], string> = {
+const WEEKDAY_NAME: Record<Rule["weekdays"][number], string> = {
   mon: "Monday",
   tue: "Tuesday",
   wed: "Wednesday",
@@ -124,7 +124,7 @@ const WEEKDAY_NAME: Record<ScheduleRule["weekdays"][number], string> = {
 const ordinal = (week: number) => (week === -1 ? "last" : ["1st", "2nd", "3rd", "4th", "5th"][week - 1]);
 
 /** How a rule repeats on one weekday: "Every Monday", "Every 1st and 3rd Monday", "Every last Monday". */
-export function fmtRepeat(rule: ScheduleRule, weekday: ScheduleRule["weekdays"][number]): string {
+export function fmtRepeat(rule: Rule, weekday: Rule["weekdays"][number]): string {
   const day = WEEKDAY_NAME[weekday];
   if (!rule.weeksOfMonth) return `Every ${day}`;
   const weeks = rule.weeksOfMonth.map(ordinal);

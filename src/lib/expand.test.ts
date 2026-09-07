@@ -1,44 +1,17 @@
 import { describe, expect, it } from "vitest";
-import type { Listing, ScheduleRule } from "@/schema/listing";
+import type { Rule } from "@/schema/host";
 import { dayOfWeek, expandSittings, localDayStart } from "@/lib/expand";
+import { aHost, aRule } from "@/test/fixtures";
 
-const rule = (over: Partial<ScheduleRule> = {}): ScheduleRule => ({
-  weekdays: ["mon"],
-  weeksOfMonth: null,
-  start: "19:00",
-  durationMinutes: 60,
-  timeZone: "Europe/Amsterdam",
-  label: null,
-  join: null,
-  ...over,
-});
+const rule = (over: Partial<Rule> = {}): Rule => aRule({ start: "19:00", ...over });
 
-const listing = (rules: ScheduleRule[], over: Partial<Listing> = {}): Listing =>
-  ({
-    id: 1,
-    name: "Test listing",
-    country: "NL",
-    host: { name: "Host", city: null, email: null, url: null },
-    description: "",
-    hostPageUrl: null,
-    apiHash: "",
-    pageHash: null,
-    extractedAt: "2026-01-01T00:00:00Z",
-    languages: ["en"],
-    medium: "video",
-    teacherLed: false,
-    questionsAndAnswers: false,
-    platform: "zoom",
-    join: { url: null, meetingId: null, password: { kind: "none" }, dialIn: null },
-    scheduleRules: rules,
-    ...over,
-  }) as Listing;
+const host = (rules: Rule[], timeZone = "Europe/Amsterdam") => aHost({ id: 1, rules, timeZone });
 
-/** The days of the month a rule fires on, over one month in the rule's zone. */
-const daysInMonth = (r: ScheduleRule, zone = "Europe/Amsterdam") => {
+/** The days of the month a rule fires on, over one month in the host's zone. */
+const daysInMonth = (r: Rule, zone = "Europe/Amsterdam") => {
   const from = new Date(Date.UTC(2026, 5, 1));
   const to = new Date(Date.UTC(2026, 6, 1));
-  return expandSittings([listing([r])], from, to, zone).map((s) => s.local.getDate());
+  return expandSittings([host([r])], from, to, zone).map((s) => s.local.getDate());
 };
 
 describe("expandSittings", () => {
@@ -60,15 +33,14 @@ describe("expandSittings", () => {
     // July 2026 has only four Mondays.
     const from = new Date(Date.UTC(2026, 6, 1));
     const to = new Date(Date.UTC(2026, 7, 1));
-    expect(expandSittings([listing([rule({ weeksOfMonth: [5] })])], from, to, "Europe/Amsterdam")).toEqual([]);
+    expect(expandSittings([host([rule({ weeksOfMonth: [5] })])], from, to, "Europe/Amsterdam")).toEqual([]);
   });
 
   it("places a sitting on the day and hour it starts in the old student's zone", () => {
     // Monday 19:00 in Kolkata is Monday 15:30 in Amsterdam.
-    const r = rule({ timeZone: "Asia/Kolkata" });
     const from = new Date(Date.UTC(2026, 5, 1));
     const to = new Date(Date.UTC(2026, 5, 8));
-    const [s] = expandSittings([listing([r])], from, to, "Europe/Amsterdam");
+    const [s] = expandSittings([host([rule()], "Asia/Kolkata")], from, to, "Europe/Amsterdam");
     expect(s.local.getDate()).toBe(1);
     expect([s.local.getHours(), s.local.getMinutes()]).toEqual([15, 30]);
   });
@@ -79,7 +51,7 @@ describe("expandSittings", () => {
     const from = localDayStart(now, zone);
     const to = localDayStart(from, zone, 7);
     const r = rule({ weekdays: ["sun"], start: "23:30" });
-    const [s] = expandSittings([listing([r])], from, to, zone);
+    const [s] = expandSittings([host([r])], from, to, zone);
     expect(s.local.getDate()).toBe(7); // Sunday 7 June, the last day of the window
     expect(s.local.getHours()).toBe(23);
   });
@@ -93,8 +65,8 @@ describe("daylight saving in the old student's zone", () => {
     // twice, at 00:30 UTC and again at 01:30 UTC.
     const from = new Date(Date.UTC(2026, 9, 25));
     const to = new Date(Date.UTC(2026, 9, 26));
-    const rules = [rule({ weekdays: ["sun"], start: "00:30", timeZone: "UTC" }), rule({ weekdays: ["sun"], start: "01:30", timeZone: "UTC" })];
-    const hours = expandSittings([listing(rules)], from, to, zone).map((s) => s.local.getHours());
+    const rules = [rule({ weekdays: ["sun"], start: "00:30" }), rule({ weekdays: ["sun"], start: "01:30" })];
+    const hours = expandSittings([host(rules, "UTC")], from, to, zone).map((s) => s.local.getHours());
     expect(hours).toEqual([2, 2]);
   });
 
@@ -103,11 +75,10 @@ describe("daylight saving in the old student's zone", () => {
     const from = new Date(Date.UTC(2026, 2, 29));
     const to = new Date(Date.UTC(2026, 2, 30));
     const r = rule({ weekdays: ["sun"], start: "02:30" });
-    const hours = expandSittings([listing([r])], from, to, zone).map((s) => s.local.getHours());
+    const hours = expandSittings([host([r])], from, to, zone).map((s) => s.local.getHours());
     expect(hours).not.toContain(2);
   });
 });
-
 
 describe("dayOfWeek", () => {
   it("counts from Monday, in the old student's zone", () => {

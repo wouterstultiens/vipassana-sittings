@@ -26,6 +26,14 @@ describe("htmlToText", () => {
     expect(text).not.toContain("cdn-cgi");
   });
 
+  it("drops the WordPress logout link, whose nonce changes on every fetch", () => {
+    const page = htmlToText(
+      '<p>Sittings</p><a href="https://example.invalid/wp-login.php?action=logout&redirect_to=x&_wpnonce=abc">Logout</a>',
+    );
+    expect(page).toContain("Sittings");
+    expect(page).not.toContain("wp-login");
+  });
+
   it("collapses runs of blank lines", () => {
     expect(text).not.toMatch(/\n{3}/);
   });

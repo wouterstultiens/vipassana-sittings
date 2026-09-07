@@ -1,16 +1,11 @@
-import type { Listing } from "../src/schema/listing.ts";
+import type { Host } from "../src/schema/host.ts";
 
-// True when the listing must go to the LLM: its file is missing, one of its two
-// hashes moved, or the run re-extracts everything.
-export function needsExtraction(input: {
-  stored: Listing | null;
-  apiHash: string;
-  pageHash: string | null;
-  all: boolean;
-}): boolean {
-  const { stored, apiHash, pageHash, all } = input;
+// True when the host must go to the LLM: its file is missing, its input hash
+// moved, or the run re-extracts everything.
+export function needsExtraction(input: { stored: Host | null; inputHash: string; all: boolean }): boolean {
+  const { stored, inputHash, all } = input;
   if (all || stored === null) return true;
-  return stored.apiHash !== apiHash || stored.pageHash !== pageHash;
+  return stored.inputHash !== inputHash;
 }
 
 // Stored ids that must lose their file: gone from the API, or excluded. The
@@ -27,9 +22,9 @@ export function removedIds(input: {
 // Ids on a hand-kept list that the API does not return. A warning, not a failure.
 export function unknownListIds(input: {
   excludedIds: number[];
-  hostPageIds: number[];
+  pageListIds: number[];
   apiIds: Set<number>;
 }): number[] {
-  const { excludedIds, hostPageIds, apiIds } = input;
-  return [...excludedIds, ...hostPageIds].filter((id) => !apiIds.has(id));
+  const { excludedIds, pageListIds, apiIds } = input;
+  return [...excludedIds, ...pageListIds].filter((id) => !apiIds.has(id));
 }

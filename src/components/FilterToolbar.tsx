@@ -5,7 +5,7 @@
 // Until the old student has ever opened a filter, a pulsing ring points at them.
 import * as React from "react";
 import { ChevronDownIcon, FilterXIcon } from "lucide-react";
-import type { Listing } from "@/schema/listing";
+import type { Host } from "@/schema/host";
 import { activeCount, DURATION_LABEL, EMPTY_FILTERS, toggle, TOGGLE_LABEL, type Filters, type SetFilters, type ToggleKey } from "@/lib/filters";
 import { languageFlag, languageName, MEDIUM_LABEL, sortLanguages, type LanguageFlag } from "@/lib/labels";
 import { FlagIcon } from "@/components/FlagIcon";
@@ -20,9 +20,9 @@ type Choice = { key: ChoiceKey; label: string; options: { value: string; label: 
 
 const keysOf = <T extends string>(record: Record<T, string>) => Object.keys(record) as T[];
 
-function useChoices(listings: Listing[]) {
+function useChoices(hosts: Host[]) {
   return React.useMemo(() => {
-    const languages = sortLanguages([...new Set(listings.flatMap((l) => l.languages))]);
+    const languages = sortLanguages([...new Set(hosts.flatMap((l) => l.languages))]);
     const durations: Choice = {
       key: "durations",
       label: "Length",
@@ -39,7 +39,7 @@ function useChoices(listings: Listing[]) {
       options: keysOf(MEDIUM_LABEL).map((k) => ({ value: k, label: MEDIUM_LABEL[k] })),
     };
     return [language, durations, medium];
-  }, [listings]);
+  }, [hosts]);
 }
 
 // The option lists are typed by their key; the menus only see strings.
@@ -98,19 +98,19 @@ function Toggles({
 
 /** The laptop toolbar: one popover menu per option list, the two checkboxes, and Clear. */
 export function FilterToolbar({
-  listings,
+  hosts,
   filters,
   setFilters,
   nudge,
   onNotice,
 }: {
-  listings: Listing[];
+  hosts: Host[];
   filters: Filters;
   setFilters: SetFilters;
   nudge: boolean; // ring the filters
   onNotice: () => void; // a menu was opened, so the ring has done its work
 }) {
-  const choices = useChoices(listings);
+  const choices = useChoices(hosts);
   return (
     <Nudge on={nudge} className="flex flex-wrap items-center gap-2">
       {choices.map((choice) => (
@@ -138,8 +138,8 @@ export function FilterToolbar({
 }
 
 /** The same filters laid out for a bottom sheet: every option list open, the two checkboxes as a last group. */
-export function FilterFields({ listings, filters, setFilters }: { listings: Listing[]; filters: Filters; setFilters: SetFilters }) {
-  const choices = useChoices(listings);
+export function FilterFields({ hosts, filters, setFilters }: { hosts: Host[]; filters: Filters; setFilters: SetFilters }) {
+  const choices = useChoices(hosts);
   return (
     <div className="space-y-5">
       {choices.map((choice) => (

@@ -11,7 +11,7 @@ import { Drawer } from "vaul";
 import type { Sitting } from "@/lib/expand";
 import type { Slot } from "@/lib/slots";
 import { type Clock, fmtDate, fmtDuration, fmtTime } from "@/lib/labels";
-import { ListingBadges } from "@/components/ListingBadges";
+import { HostBadges } from "@/components/HostBadges";
 import { SittingDetails } from "@/components/SittingDetails";
 import { Button } from "@/components/ui/button";
 
@@ -49,8 +49,8 @@ function SittingPage({ sitting, zone, clock, onBack }: { sitting: Sitting; zone:
   return (
     <>
       <BackRow onBack={onBack} />
-      <Drawer.Title className="sr-only">{sitting.listing.name}</Drawer.Title>
-      <SittingDetails listing={sitting.listing} sitting={sitting} zone={zone} clock={clock} />
+      <Drawer.Title className="sr-only">{sitting.host.name}</Drawer.Title>
+      <SittingDetails sitting={sitting} zone={zone} clock={clock} />
     </>
   );
 }
@@ -80,11 +80,11 @@ function SlotPages({ slot, zone, clock, onClose }: { slot: Slot; zone: string; c
               onClick={() => setPicked(s)}
             >
               <div className="min-w-0 flex-1">
-                <div className="truncate font-medium" title={s.listing.name}>
-                  {s.listing.name}
+                <div className="truncate font-medium" title={s.host.name}>
+                  {s.host.name}
                 </div>
                 <div className="mt-1">
-                  <ListingBadges listing={s.listing} size="xs" />
+                  <HostBadges host={s.host} size="xs" />
                 </div>
               </div>
               <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />

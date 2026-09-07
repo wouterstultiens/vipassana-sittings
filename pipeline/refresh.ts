@@ -1,98 +1,86 @@
-// Turns API and host page changes into structured data changes in data/listings/.
+// Turns API and page changes into host changes in data/hosts/.
 //
-// One listing at a time: hash the API fields, fetch and hash the host page when
-// one is listed, and send both texts to the LLM only when a hash moved. A failed
-// listing keeps its previous file and fails the run at the end.
+// One host at a time: hash its rows and its pages together, and send them to
+// the LLM only when the hash moved. A failed host keeps its previous file and
+// fails the run at the end.
 //
 // Usage: pnpm refresh [--dry-run] [--all]
-//   --dry-run  print the plan and the diff, write nothing. A listing whose
-//              hashes moved is still extracted, because the diff needs it.
-//   --all      re-extract every listing, whatever the hashes say
+//   --dry-run  print the plan and the diff, write nothing. A host whose hash
+//              moved is still extracted, because the diff needs it.
+//   --all      re-extract every host, whatever the hashes say
 
 import { appendFileSync } from "node:fs";
-import type { ApiListing } from "./api.ts";
+import { fetchApi, rowsByHost } from "./api.ts";
 import { diffFields } from "./diff.ts";
-import { claudeAsk, extractListing } from "./extract.ts";
-import { fetchPage } from "./fetch-page.ts";
-import { apiHash, hashText } from "./hash.ts";
-import { buildListing } from "./listing.ts";
-import { excludedIds, hostPages } from "./lists.ts";
+import { claudeAsk, extractHost, type PageInput } from "./extract.ts";
+import { type Page, Session } from "./fetch-page.ts";
+import { inputHash } from "./hash.ts";
+import { buildHost } from "./host.ts";
+import { excludedIds, pageList } from "./lists.ts";
 import { needsExtraction, removedIds, unknownListIds } from "./plan.ts";
 import { deleteStored, readStored, storedIds, writeStored } from "./store.ts";
 import { emptySummary, formatSummary } from "./summary.ts";
-
-const API_URL = "https://www.dhamma.org/api/v1/events/virtual";
 
 const dryRun = process.argv.includes("--dry-run");
 const all = process.argv.includes("--all");
 
 // Nothing is written before the whole endpoint is known to be sound.
-async function fetchApi(): Promise<ApiListing[]> {
-  const res = await fetch(API_URL, { signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) throw new Error(`the virtual endpoint answered ${res.status}`);
-  const body: unknown = await res.json();
-  if (!Array.isArray(body)) throw new Error("the virtual endpoint did not answer with a list");
-  if (body.length === 0) throw new Error("the virtual endpoint answered with zero listings");
-  return body as ApiListing[];
-}
-
 const api = await fetchApi().catch((error: Error) => {
   console.error(`Nothing was written: ${error.message}`);
   process.exit(1);
 });
-const apiIds = new Set(api.map((listing) => listing.id));
+const hosts = rowsByHost(api);
+const apiIds = new Set(hosts.keys());
 const summary = emptySummary();
 
 for (const id of unknownListIds({
   excludedIds: [...excludedIds],
-  hostPageIds: [...hostPages.keys()],
+  pageListIds: [...pageList.keys()],
   apiIds,
 })) {
   summary.warnings.push(`id ${id} is on a hand-kept list but not in the API`);
 }
 
 const ask = claudeAsk();
+const session = new Session();
 const plan: string[] = [];
 const filed = new Set(storedIds());
 
-// The run summary names every listing the calendar cannot place, whether it
-// was extracted again this run or kept as it was.
-const noteWithoutRule = (listing: { id: number; scheduleRules: unknown[] } | null) => {
-  if (listing !== null && listing.scheduleRules.length === 0) summary.withoutRule.push(listing.id);
+// A page shared by several hosts is fetched once per run.
+const fetched = new Map<string, Promise<string>>();
+const textOf = (page: Page) => {
+  let text = fetched.get(page.url);
+  if (!text) fetched.set(page.url, (text = session.fetchPage(page)));
+  return text;
 };
 
-for (const listing of api) {
-  const { id } = listing;
+// The run summary names every host the calendar cannot place, whether it was
+// extracted again this run or kept as it was.
+const noteWithoutRule = (host: { id: number; rules: unknown[] } | null) => {
+  if (host !== null && host.rules.length === 0) summary.withoutRule.push(host.id);
+};
+
+for (const [id, rows] of hosts) {
   if (excludedIds.has(id)) continue;
   const stored = readStored(id);
-  const page = hostPages.get(id);
 
-  let pageText: string | null = null;
-  if (page) {
-    try {
-      pageText = await fetchPage(page.url, page.basicAuth);
-    } catch (error) {
-      summary.failed.push({ id, reason: `host page: ${(error as Error).message}` });
-      noteWithoutRule(stored);
-      continue;
-    }
+  const pages: PageInput[] = [];
+  try {
+    for (const page of pageList.get(id) ?? []) pages.push({ url: page.url, text: await textOf(page) });
+  } catch (error) {
+    summary.failed.push({ id, reason: `page: ${(error as Error).message}` });
+    noteWithoutRule(stored);
+    continue;
   }
-  const pageHash = pageText === null ? null : hashText(pageText);
 
-  if (!needsExtraction({ stored, apiHash: apiHash(listing), pageHash, all })) {
+  if (!needsExtraction({ stored, inputHash: inputHash(rows, pages), all })) {
     noteWithoutRule(stored);
     continue;
   }
 
   let extracted;
   try {
-    extracted = buildListing({
-      api: listing,
-      extraction: await extractListing(ask, listing, pageText),
-      hostPageUrl: page?.url ?? null,
-      pageText,
-      extractedAt: new Date().toISOString(),
-    });
+    extracted = buildHost({ rows, extraction: await extractHost(ask, rows, pages), pages });
   } catch (error) {
     summary.failed.push({ id, reason: `extraction: ${(error as Error).message}` });
     noteWithoutRule(stored);

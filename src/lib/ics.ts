@@ -5,9 +5,9 @@
 import { TZDate } from "@date-fns/tz";
 import { addMinutes, format } from "date-fns";
 import { type Sitting, WEEKDAYS } from "@/lib/expand";
-import { joinFor, passwordNote } from "@/lib/join";
+import { passwordNote } from "@/lib/join";
 import { fmtDuration } from "@/lib/labels";
-import type { ScheduleRule } from "@/schema/listing";
+import type { Rule } from "@/schema/host";
 
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 const wallClock = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
@@ -40,10 +40,10 @@ function fold(contentLine: string): string {
 }
 
 /** The weekday of a sitting on the host's clock, "mon". */
-export const hostWeekday = (sitting: Sitting) => WEEKDAYS[new TZDate(sitting.start, sitting.rule.timeZone).getDay()];
+export const hostWeekday = (sitting: Sitting) => WEEKDAYS[new TZDate(sitting.start, sitting.host.timeZone).getDay()];
 
 /** How a sitting repeats on its weekday, as an RFC 5545 recurrence: every week, or on the rule's weeks of the month. */
-export function rrule(rule: ScheduleRule, weekday: (typeof WEEKDAYS)[number]): string {
+export function rrule(rule: Rule, weekday: (typeof WEEKDAYS)[number]): string {
   const day = weekday.slice(0, 2).toUpperCase();
   if (!rule.weeksOfMonth) return `FREQ=WEEKLY;BYDAY=${day}`;
   return `FREQ=MONTHLY;BYDAY=${rule.weeksOfMonth.map((w) => `${w}${day}`).join(",")}`;
@@ -54,24 +54,23 @@ export function rrule(rule: ScheduleRule, weekday: (typeof WEEKDAYS)[number]): s
  * repeats are one other event, so both can sit in a calendar side by side.
  */
 const uid = (sitting: Sitting, repeat: boolean) => {
-  const ruleIndex = sitting.listing.scheduleRules.indexOf(sitting.rule);
-  return repeat ? `${sitting.listing.id}-${ruleIndex}-${hostWeekday(sitting)}` : sitting.key;
+  const ruleIndex = sitting.host.rules.indexOf(sitting.rule);
+  return repeat ? `${sitting.host.id}-${ruleIndex}-${hostWeekday(sitting)}` : sitting.key;
 };
 
 export function icsEvent(sitting: Sitting, repeat = false): string {
-  const { listing, rule } = sitting;
-  const join = joinFor(listing, rule);
-  const hostPage = listing.hostPageUrl ?? listing.host.url;
-  const start = new TZDate(sitting.start, rule.timeZone);
+  const { host, rule } = sitting;
+  const { join } = rule;
+  const start = new TZDate(sitting.start, host.timeZone);
   const description = [
-    `${listing.host.name}, ${listing.name}`,
+    rule.label ? `${host.name}, ${rule.label}` : host.name,
     `Lasts ${fmtDuration(rule.durationMinutes)}`,
     join.url ? `Join: ${join.url}` : "",
     join.meetingId ? `Meeting id: ${join.meetingId}` : "",
     `Password: ${passwordNote(join.password)}`,
     join.dialIn ? `Dial in: ${join.dialIn.numbers.join(", ")}` : "",
     join.dialIn?.accessCode ? `Access code: ${join.dialIn.accessCode}` : "",
-    hostPage ? `Host page: ${hostPage}` : "",
+    host.pageUrl ? `Host page: ${host.pageUrl}` : "",
   ].filter(Boolean);
 
   return [
@@ -81,10 +80,10 @@ export function icsEvent(sitting: Sitting, repeat = false): string {
     "BEGIN:VEVENT",
     `UID:${uid(sitting, repeat)}@vipassana-sittings`,
     `DTSTAMP:${stamp(new Date())}`,
-    `DTSTART;TZID=${rule.timeZone}:${wallClock(start)}`,
-    `DTEND;TZID=${rule.timeZone}:${wallClock(addMinutes(start, rule.durationMinutes))}`,
+    `DTSTART;TZID=${host.timeZone}:${wallClock(start)}`,
+    `DTEND;TZID=${host.timeZone}:${wallClock(addMinutes(start, rule.durationMinutes))}`,
     repeat ? `RRULE:${rrule(rule, hostWeekday(sitting))}` : "",
-    `SUMMARY:${esc(`Group sitting: ${listing.name}`)}`,
+    `SUMMARY:${esc(`Group sitting: ${host.name}`)}`,
     `DESCRIPTION:${esc(description.join("\n"))}`,
     join.url ? `URL:${join.url}` : "",
     "END:VEVENT",

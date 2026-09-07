@@ -6,7 +6,7 @@
 // ahead that passes the filters and turns to it on a tap.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import type { Listing } from "@/schema/listing";
+import type { Host } from "@/schema/host";
 import { dayOfWeek, expandSittings, localDayStart, type Sitting, WEEKS_AHEAD } from "@/lib/expand";
 import { activeCount, EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
 import { type Clock, deviceClock, fmtDate, fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
@@ -70,7 +70,7 @@ function Pane({
   );
 }
 
-export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: string }) {
+export function Calendar({ hosts, builtAt }: { hosts: Host[]; builtAt: string }) {
   // The server render knows neither the old student's zone nor the current
   // time, so it draws the build-time week in UTC and the browser corrects it
   // on mount, from local storage where a previous visit left something.
@@ -122,7 +122,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   // the other renders (a row opening, the clock ticking), so the memoised
   // rows below skip their work.
   const [first, last] = phone ? [Math.max(0, day - 1), Math.min(DAYS - 1, day + 1)] : [7 * weeks, 7 * weeks + 6];
-  const all = React.useMemo(() => expandSittings(listings, days[first], days[last + 1], zone), [listings, days, first, last, zone]);
+  const all = React.useMemo(() => expandSittings(hosts, days[first], days[last + 1], zone), [hosts, days, first, last, zone]);
   const dayLists = React.useMemo(() => {
     const shown = all.filter((s) => sittingMatches(s, filters));
     return new Map(
@@ -140,8 +140,8 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   // worked out while a shown day is empty.
   const anyEmpty = [...dayLists.values()].some((d) => d.slots.length === 0);
   const upcoming = React.useMemo(
-    () => (anyEmpty ? expandSittings(listings, days[first], days[DAYS], zone).filter((s) => sittingMatches(s, filters)) : []),
-    [anyEmpty, listings, days, first, zone, filters],
+    () => (anyEmpty ? expandSittings(hosts, days[first], days[DAYS], zone).filter((s) => sittingMatches(s, filters)) : []),
+    [anyEmpty, hosts, days, first, zone, filters],
   );
   const nextAfter = (i: number) => upcoming.find((s) => s.start >= days[i + 1]) ?? null;
   const dayIndexOf = (s: Sitting) => days.findLastIndex((d) => d <= s.start);
@@ -264,7 +264,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
             {fmtDayMonth(days[7 * weeks], zone)} – {fmtDayMonthYear(days[7 * weeks + 6], zone)}
           </span>
           <div className="mx-1 h-6 w-px bg-border" />
-          <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} nudge={nudge} onNotice={noticeFilters} />
+          <FilterToolbar hosts={hosts} filters={filters} setFilters={setFilters} nudge={nudge} onNotice={noticeFilters} />
           <div className="ml-auto flex items-center gap-2">
             <ZoneSelect value={prefs?.zone ?? null} onChange={setZone} />
             <ClockToggle clock={clock} onChange={setClock} />
@@ -308,7 +308,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
           <h2 className={cn("truncate text-sm font-semibold", day === todayIndex && "text-primary")}>{fmtDate(days[day], zone)}</h2>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <FilterSheet
-              listings={listings}
+              hosts={hosts}
               filters={filters}
               setFilters={setFilters}
               zone={prefs?.zone ?? null}
