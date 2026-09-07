@@ -1,9 +1,8 @@
 // The phone's way between days: the seven days in one row fixed at the
 // bottom of the screen, in reach of the thumb, with the week arrows at the
-// ends. A tap turns to that day. The day on screen is marked and widens to
-// show its month, so the strip is the only place the date is said.
+// ends. A tap turns to that day; the day on screen is marked.
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { fmtDayMonth, fmtDayOfMonth, fmtWeekday } from "@/lib/labels";
+import { fmtDayOfMonth, fmtWeekday } from "@/lib/labels";
 import type { Day } from "@/components/HourGrid";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -37,14 +36,12 @@ export function DayStrip({
               onClick={() => onPick(i)}
               aria-current={i === active ? "date" : undefined}
               className={cn(
-                "flex flex-col items-center rounded-md py-1 text-xs leading-tight whitespace-nowrap transition-[flex-grow] duration-200",
-                i === active ? "flex-[2] bg-primary text-primary-foreground" : today ? "flex-1 text-primary hover:bg-accent" : "flex-1 text-muted-foreground hover:bg-accent",
+                "flex flex-1 flex-col items-center rounded-md py-1 text-xs leading-tight whitespace-nowrap",
+                i === active ? "bg-primary text-primary-foreground" : today ? "text-primary hover:bg-accent" : "text-muted-foreground hover:bg-accent",
               )}
             >
               <span>{fmtWeekday(day, zone)}</span>
-              <span className={cn("text-base font-semibold", i !== active && !today && "text-foreground")}>
-                {i === active ? fmtDayMonth(day, zone) : fmtDayOfMonth(day, zone)}
-              </span>
+              <span className={cn("text-base font-semibold", i !== active && !today && "text-foreground")}>{fmtDayOfMonth(day, zone)}</span>
             </button>
           ))}
         </nav>

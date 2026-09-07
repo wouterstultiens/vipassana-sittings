@@ -7,7 +7,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
 import { EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
-import { fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
+import { fmtDate, fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
 import { slotsOf, type Slot } from "@/lib/slots";
 import { useSize } from "@/hooks/use-size";
@@ -21,6 +21,7 @@ import { SittingSheet } from "@/components/SittingSheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /** Where the calendar is open: which week from today, and on a phone which day of it fills the screen. */
 type Page = { weeks: number; day: number };
@@ -136,19 +137,23 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     </>
   );
 
-  // The phone's toolbar holds only the filters and the theme: the day strip
-  // at the bottom carries the date, in reach of the thumb.
+  // The phone's toolbar names the day in full, with the filters and the
+  // theme at the right. The day strip at the bottom turns the day, in reach
+  // of the thumb.
   const phoneView = (
     <>
       <div ref={headerRef} className="sticky top-0 z-20 border-b bg-background">
-        <div className="flex items-center justify-end gap-2 px-3 py-1.5">
-          <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
-          <ThemeToggle />
+        <div className="flex items-center gap-2 px-3 py-1.5">
+          <h2 className={cn("truncate text-sm font-semibold", shownDay.today && "text-primary")}>{fmtDate(shownDay.day, zone)}</h2>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
+            <ThemeToggle />
+          </div>
         </div>
       </div>
       <AppliedFilters filters={filters} setFilters={setFilters} />
       <div className="px-3 pb-[calc(env(safe-area-inset-bottom)+4.5rem)]">
-        <HourGrid days={[shownDay]} zone={zone} now={now} nowHour={shownDay.today ? nowHour : null} onOpen={setOpen} />
+        <HourGrid days={[shownDay]} zone={zone} now={now} nowHour={shownDay.today ? nowHour : null} headers={false} onOpen={setOpen} />
       </div>
       <DayStrip
         days={dayLists}

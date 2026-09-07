@@ -33,7 +33,7 @@ export function hourInView(): number {
 }
 
 // On a laptop the day headers stick under the toolbar, whose height is
-// --header. On a phone the day strip does that job.
+// --header. On a phone the toolbar names the day and the grid has no headers.
 const STICKY_HEADER = "z-10 border-b bg-background md:sticky md:top-(--header)";
 
 // What a row's width loses to the gutter column and the cell's own padding.
@@ -45,12 +45,14 @@ export function HourGrid({
   zone,
   now,
   nowHour,
+  headers = true,
   onOpen,
 }: {
   days: Day[];
   zone: string;
   now: Date;
   nowHour: number | null; // the current hour when today is one of the days
+  headers?: boolean; // the day headers on top of the columns, off on a phone
   onOpen: (slot: Slot) => void;
 }) {
   const byHour = days.map(({ slots }) => Map.groupBy(slots, (s) => hourIn(s.start, zone)));
@@ -59,20 +61,24 @@ export function HourGrid({
 
   return (
     <div ref={gridRef} className="grid" style={{ gridTemplateColumns: `auto repeat(${days.length}, minmax(0, 1fr))` }}>
-      <div className={STICKY_HEADER} />
-      {days.map(({ day, today }) => (
-        <h2
-          key={day.getTime()}
-          className={cn(
-            STICKY_HEADER,
-            "flex items-baseline gap-1.5 px-2 py-1 text-sm whitespace-nowrap",
-            today ? "bg-today text-primary" : "text-muted-foreground",
-          )}
-        >
-          <span>{fmtWeekday(day, zone)}</span>
-          <span className={cn("text-base font-semibold", !today && "text-foreground")}>{fmtDayOfMonth(day, zone)}</span>
-        </h2>
-      ))}
+      {headers && (
+        <>
+          <div className={STICKY_HEADER} />
+          {days.map(({ day, today }) => (
+            <h2
+              key={day.getTime()}
+              className={cn(
+                STICKY_HEADER,
+                "flex items-baseline gap-1.5 px-2 py-1 text-sm whitespace-nowrap",
+                today ? "bg-today text-primary" : "text-muted-foreground",
+              )}
+            >
+              <span>{fmtWeekday(day, zone)}</span>
+              <span className={cn("text-base font-semibold", !today && "text-foreground")}>{fmtDayOfMonth(day, zone)}</span>
+            </h2>
+          ))}
+        </>
+      )}
 
       {HOURS.map((h) => (
         <React.Fragment key={h}>
