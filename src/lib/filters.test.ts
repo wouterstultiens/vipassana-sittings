@@ -4,13 +4,13 @@ import {
   appliedFilters,
   durationBand,
   EMPTY_FILTERS,
-  listingMatches,
+  hostMatches,
   sittingMatches,
   toggle,
   type Filters,
 } from "@/lib/filters";
 import { expandSittings } from "@/lib/expand";
-import { aListing, aRule } from "@/test/fixtures";
+import { aHost, aRule } from "@/test/fixtures";
 
 const withFilters = (over: Partial<Filters>): Filters => ({ ...EMPTY_FILTERS, ...over });
 
@@ -25,41 +25,40 @@ describe("durationBand", () => {
   });
 });
 
-describe("listingMatches", () => {
-  const listing = aListing({
+describe("hostMatches", () => {
+  const host = aHost({
     languages: ["en", "nl"],
     medium: "video",
-    platform: "zoom",
     teacherLed: false,
     questionsAndAnswers: true,
   });
 
-  it("keeps every listing when no filter is set", () => {
-    expect(listingMatches(listing, EMPTY_FILTERS)).toBe(true);
+  it("keeps every host when no filter is set", () => {
+    expect(hostMatches(host, EMPTY_FILTERS)).toBe(true);
   });
 
-  it("keeps a listing that speaks one of the chosen languages", () => {
-    expect(listingMatches(listing, withFilters({ languages: ["nl"] }))).toBe(true);
-    expect(listingMatches(listing, withFilters({ languages: ["de"] }))).toBe(false);
+  it("keeps a host that speaks one of the chosen languages", () => {
+    expect(hostMatches(host, withFilters({ languages: ["nl"] }))).toBe(true);
+    expect(hostMatches(host, withFilters({ languages: ["de"] }))).toBe(false);
   });
 
   it("filters on medium", () => {
-    expect(listingMatches(listing, withFilters({ medium: ["audio"] }))).toBe(false);
-    expect(listingMatches(listing, withFilters({ medium: ["video", "audio"] }))).toBe(true);
+    expect(hostMatches(host, withFilters({ medium: ["audio"] }))).toBe(false);
+    expect(hostMatches(host, withFilters({ medium: ["video", "audio"] }))).toBe(true);
   });
 
   it("treats the two toggles as off when they are null", () => {
-    expect(listingMatches(listing, withFilters({ teacherLed: null }))).toBe(true);
-    expect(listingMatches(listing, withFilters({ teacherLed: true }))).toBe(false);
-    expect(listingMatches(listing, withFilters({ questionsAndAnswers: true }))).toBe(true);
+    expect(hostMatches(host, withFilters({ teacherLed: null }))).toBe(true);
+    expect(hostMatches(host, withFilters({ teacherLed: true }))).toBe(false);
+    expect(hostMatches(host, withFilters({ questionsAndAnswers: true }))).toBe(true);
   });
 });
 
 describe("sittingMatches", () => {
   // Monday 3 August 2026, 07:00 in Amsterdam, one hour long.
-  const listing = aListing({ scheduleRules: [aRule({ weekdays: ["mon"], start: "07:00", durationMinutes: 60 })] });
+  const host = aHost({ rules: [aRule({ weekdays: ["mon"], start: "07:00", durationMinutes: 60 })] });
   const [sitting] = expandSittings(
-    [listing],
+    [host],
     new Date("2026-08-03T00:00:00Z"),
     new Date("2026-08-04T00:00:00Z"),
     "Europe/Amsterdam",
@@ -74,7 +73,7 @@ describe("sittingMatches", () => {
     expect(sittingMatches(sitting, withFilters({ durations: ["day"] }))).toBe(false);
   });
 
-  it("also applies the listing filters", () => {
+  it("also applies the host filters", () => {
     expect(sittingMatches(sitting, withFilters({ medium: ["stream"] }))).toBe(false);
   });
 });

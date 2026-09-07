@@ -1,0 +1,41 @@
+{
+  "681": [{ "url": "https://sarana.dhamma.org/pt-BR/meditacoes-em-grupo-vipassana/", "wall": "post-password" }],
+  "921": [{ "url": "https://atala.dhamma.org/old-student-site/online-group-sitting/", "wall": "typo3", "loginUrl": "https://atala.dhamma.org/old-student-site/" }],
+  "1114": [{ "url": "https://modana.dhamma.org/os/regions/duncan/", "wall": "wordpress" }],
+  "1889": [{ "url": "https://suttama.dhamma.org/en/os/vipassana-virtual-activities/", "wall": "typo3", "loginUrl": "https://suttama.dhamma.org/en/os/vipassana-virtual-activities/" }],
+  "1913": [{ "url": "https://santosa.dhamma.org/os/virtual-group-sittings/", "wall": "wordpress" }],
+  "1923": [{ "url": "https://pamoda.dhamma.org/en/os-vipassana/online-group-sits/", "wall": "none" }],
+  "1945": [
+    { "url": "https://jp.dhamma.org/os/online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" },
+    { "url": "https://jp.dhamma.org/os/coronavirus-support/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" },
+    { "url": "https://jp.dhamma.org/os/old-student-support/world-online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" }
+  ],
+  "1993": [{ "url": "https://phala.dhamma.org/en/virtual-group-sittings/", "wall": "post-password" }],
+  "1994": [{ "url": "https://fr.dhamma.org/en/sitting-old-student/online-meditation/", "wall": "typo3", "loginUrl": "https://fr.dhamma.org/en/sitting-old-student/online-meditation/" }],
+  "2010": [{ "url": "https://sobhana.dhamma.org/os/group-sittings/", "wall": "typo3", "loginUrl": "https://sobhana.dhamma.org/os/" }],
+  "2030": [{ "url": "https://karuna.dhamma.org/os/virtual-group-sittings/", "wall": "wordpress" }],
+  "2032": [{ "url": "https://dhara.dhamma.org/os/regions/virtual-group-sittings/", "wall": "wordpress" }],
+  "2037": [{ "url": "https://sarana.dhamma.org/pt-BR/meditacoes-em-grupo-vipassana/", "wall": "post-password" }],
+  "2047": [{ "url": "https://malaya.dhamma.org/en/vgs.shtml", "wall": "none" }],
+  "2063": [{ "url": "https://kunja.dhamma.org/os/practice/vgs/", "wall": "wordpress" }],
+  "2110": [{ "url": "https://malaya.dhamma.org/en/vgs.shtml", "wall": "none" }],
+  "2126": [
+    { "url": "https://korea.dhamma.org/en/old-student-site/group-sittings/virtual-group-sitting/", "wall": "typo3", "loginUrl": "https://korea.dhamma.org/old-student-site/" },
+    { "url": "https://korea.dhamma.org/old-student-site/group-sittings/virtual-group-sitting/", "wall": "typo3", "loginUrl": "https://korea.dhamma.org/old-student-site/" }
+  ],
+  "2148": [
+    { "url": "https://kunja.dhamma.org/os/practice/vgs/", "wall": "wordpress" },
+    { "url": "https://kunja.dhamma.org/virtual/index.html", "wall": "none" }
+  ],
+  "2247": [{ "url": "https://jp.dhamma.org/os/old-student-support/world-online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" }],
+  "2320": [{ "url": "https://id.dhamma.org/en/virtual-group-sitting/", "wall": "post-password" }],
+  "2356": [{ "url": "https://hu.dhamma.org/en/old-students/online-group-sitting/", "wall": "typo3", "loginUrl": "https://hu.dhamma.org/en/old-students/" }],
+  "2370": [{ "url": "https://ua.dhamma.org/old-student/meditation-online/", "wall": "typo3", "loginUrl": "https://ua.dhamma.org/old-student/" }],
+  "2384": [{ "url": "https://pakasa.dhamma.org/os/practice/vgs/", "wall": "wordpress" }],
+  "2654": [{ "url": "https://bg.dhamma.org/old-student/group-sittings-and-1-day-courses/", "wall": "typo3", "loginUrl": "https://bg.dhamma.org/old-student/" }],
+  "3063": [{ "url": "https://www.dhamma.org/en/schedules/noncenter/goa.in", "wall": "none" }],
+  "5142": [{ "url": "https://www.dhamma.org/en/schedules/noncenter/ps", "wall": "none" }],
+  "5670": [{ "url": "https://hi.us.dhamma.org/en/old-students/virtual-group-sittings/", "wall": "post-password" }],
+  "12699": [{ "url": "https://es.dhamma.org/en/old-students-website/group-sittings/group-sitting-online/", "wall": "typo3", "loginUrl": "https://es.dhamma.org/en/old-students-website/" }],
+  "15504": [{ "url": "https://talaka.dhamma.org/en/os/sitting-for-old-students/virtual-sittings/", "wall": "typo3", "loginUrl": "https://talaka.dhamma.org/en/os/sitting-for-old-students/virtual-sittings/" }]
+}

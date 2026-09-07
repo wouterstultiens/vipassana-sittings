@@ -9,7 +9,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "golden": "tsx pipeline/golden.ts",
+    "collect": "tsx --env-file-if-exists=.env pipeline/collect.ts",
     "refresh": "tsx --env-file-if-exists=.env pipeline/refresh.ts",
     "test": "vitest run",
     "tsc": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json"

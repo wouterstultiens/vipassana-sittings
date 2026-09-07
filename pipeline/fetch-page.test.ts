@@ -1,77 +1,154 @@
 import { readFileSync } from "node:fs";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchPage, PageFetchError } from "./fetch-page.ts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchPage, PageFetchError, Session } from "./fetch-page.ts";
 
 const html = readFileSync(new URL("./fixtures/host-page.html", import.meta.url), "utf8");
-const URL_UNDER_TEST = "https://example.invalid/sittings";
+const PAGE = "https://example.invalid/os/sittings/";
+const LOGIN = "https://example.invalid/os/";
 
-const answer = (init: { body?: string; status?: number; url?: string } = {}) => {
-  const res = new Response(init.body ?? html, { status: init.status ?? 200 });
-  Object.defineProperty(res, "url", { value: init.url ?? URL_UNDER_TEST });
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(res));
+const typo3Form = `<html><body><form action="/os/?tx_felogin_login%5Baction%5D=login" method="post">
+<input type="hidden" name="__RequestToken" value="tok123">
+<input type="text" name="user"><input type="password" name="pass">
+</form></body></html>`;
+
+const postPasswordForm = `<html><body><form action="https://example.invalid/wp-login.php?action=postpass" method="post">
+<p>To view this protected post, enter the password below:</p>
+<input name="post_password" type="password"></form></body></html>`;
+
+type Call = { url: string; init: RequestInit };
+let calls: Call[];
+
+// One canned answer per URL, in call order; the page HTML for anything else.
+const serve = (answers: Record<string, () => Response>) => {
+  calls = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      const res = answers[url]?.() ?? new Response(html, { status: 200 });
+      Object.defineProperty(res, "url", { value: url });
+      return res;
+    }),
+  );
 };
+const redirect = (to: string, cookie?: string) =>
+  new Response(null, { status: 302, headers: cookie ? { location: to, "set-cookie": cookie } : { location: to } });
 
+beforeEach(() => {
+  vi.stubEnv("OLD_STUDENT_USER", "student");
+  vi.stubEnv("OLD_STUDENT_PASS", "secret");
+});
 afterEach(() => vi.unstubAllGlobals());
 
-describe("fetchPage", () => {
+describe("fetchPage without a wall", () => {
   it("gives the stripped page text", async () => {
-    answer();
-    await expect(fetchPage(URL_UNDER_TEST, false)).resolves.toContain("Monday and Thursday");
+    serve({});
+    await expect(fetchPage({ url: PAGE, wall: "none" })).resolves.toContain("Monday and Thursday");
   });
 
   it("fails on a non-2xx status", async () => {
-    answer({ status: 401 });
-    await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow("status 401");
+    serve({ [PAGE]: () => new Response("", { status: 401 }) });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow("status 401");
   });
 
   it("fails on a network error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("socket hang up")));
-    await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow(PageFetchError);
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow(PageFetchError);
+  });
+
+  it("follows a redirect on the same host", async () => {
+    serve({ [PAGE]: () => redirect("https://example.invalid/os/sittings-2/") });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).resolves.toContain("Monday and Thursday");
   });
 
   it("fails when the page redirects to another host", async () => {
-    answer({ url: "https://teams.invalid/meeting" });
-    await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow("redirected to teams.invalid");
+    serve({ [PAGE]: () => redirect("https://teams.invalid/meeting") });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow("redirected to teams.invalid");
   });
 
   it("fails when the page redirects to a login form on the same host", async () => {
-    answer({ url: "https://example.invalid/en/login/" });
-    await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow("login page");
+    serve({ [PAGE]: () => redirect("https://example.invalid/en/login/") });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow("behind a login wall");
+  });
+
+  it("fails when the page answers 200 with only a password form", async () => {
+    serve({ [PAGE]: () => new Response(postPasswordForm) });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow("behind a login wall");
   });
 
   it("fails when too little text is left", async () => {
-    answer({ body: "<p>Coming soon</p>" });
-    await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow(/only \d+ characters/);
+    serve({ [PAGE]: () => new Response("<p>Coming soon</p>") });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow(/only \d+ characters/);
   });
 
-  it("reports every failure as a PageFetchError", async () => {
-    const failures = [
-      () => answer({ status: 401 }),
-      () => vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("socket hang up"))),
-      () => answer({ url: "https://teams.invalid/meeting" }),
-      () => answer({ url: "https://example.invalid/en/login/" }),
-      () => answer({ body: "<p>Coming soon</p>" }),
-    ];
-    for (const setUp of failures) {
-      setUp();
-      await expect(fetchPage(URL_UNDER_TEST, false)).rejects.toThrow(PageFetchError);
-    }
+  it("gives up on a redirect loop", async () => {
+    serve({ [PAGE]: () => redirect(PAGE) });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow("too many redirects");
   });
+});
 
-  it("fails when a basic-auth page has no credentials", async () => {
-    answer();
+describe("fetchPage behind a wall", () => {
+  it("fails when the credentials are not set", async () => {
     vi.stubEnv("OLD_STUDENT_USER", "");
-    vi.stubEnv("OLD_STUDENT_PASS", "");
-    await expect(fetchPage(URL_UNDER_TEST, true)).rejects.toThrow("are not set");
+    serve({});
+    await expect(fetchPage({ url: PAGE, wall: "wordpress" })).rejects.toThrow("are not set");
   });
 
-  it("sends the old-student credentials for a basic-auth page", async () => {
-    answer();
-    vi.stubEnv("OLD_STUDENT_USER", "student");
-    vi.stubEnv("OLD_STUDENT_PASS", "secret");
-    await fetchPage(URL_UNDER_TEST, true);
-    const [, init] = vi.mocked(fetch).mock.calls[0]!;
-    const headers = (init as RequestInit).headers as Record<string, string>;
-    expect(headers.Authorization).toBe("Basic " + btoa("student:secret"));
+  it("posts the TYPO3 form with its hidden fields, then keeps the cookie", async () => {
+    serve({
+      [LOGIN]: () => new Response(typo3Form),
+      "https://example.invalid/os/?tx_felogin_login%5Baction%5D=login": () =>
+        redirect(LOGIN, "fe_typo_user=abc; Path=/; HttpOnly"),
+    });
+    await fetchPage({ url: PAGE, wall: "typo3", loginUrl: LOGIN });
+    const post = calls.find((c) => c.init.method === "POST")!;
+    expect(post.url).toBe("https://example.invalid/os/?tx_felogin_login%5Baction%5D=login");
+    const body = new URLSearchParams(post.init.body as string);
+    expect(body.get("__RequestToken")).toBe("tok123");
+    expect(body.get("user")).toBe("student");
+    expect(body.get("pass")).toBe("secret");
+    expect(body.get("logintype")).toBe("login");
+    const page = calls.find((c) => c.url === PAGE)!;
+    expect((page.init.headers as Record<string, string>).Cookie).toBe("fe_typo_user=abc");
+  });
+
+  it("posts the WordPress login to wp-login.php", async () => {
+    serve({
+      "https://example.invalid/wp-login.php": () => redirect(PAGE, "wordpress_logged_in=xyz; Path=/"),
+    });
+    await fetchPage({ url: PAGE, wall: "wordpress" });
+    const post = calls.find((c) => c.init.method === "POST")!;
+    expect(post.url).toBe("https://example.invalid/wp-login.php");
+    const body = new URLSearchParams(post.init.body as string);
+    expect(body.get("log")).toBe("student");
+    expect(body.get("pwd")).toBe("secret");
+    expect(body.get("redirect_to")).toBe(PAGE);
+  });
+
+  it("unlocks a protected WordPress post with the password", async () => {
+    serve({
+      "https://example.invalid/wp-login.php?action=postpass": () =>
+        redirect(PAGE, "wp-postpass_1=hash; Path=/"),
+    });
+    await fetchPage({ url: PAGE, wall: "post-password" });
+    const post = calls.find((c) => c.init.method === "POST")!;
+    expect(new URLSearchParams(post.init.body as string).get("post_password")).toBe("secret");
+    expect((post.init.headers as Record<string, string>).Referer).toBe(PAGE);
+  });
+
+  it("names the wall when the login did not open the page", async () => {
+    serve({
+      "https://example.invalid/wp-login.php": () => redirect(PAGE),
+      [PAGE]: () => new Response(postPasswordForm),
+    });
+    await expect(fetchPage({ url: PAGE, wall: "wordpress" })).rejects.toThrow("wordpress login did not open it");
+  });
+
+  it("logs in once per site in a session", async () => {
+    serve({ "https://example.invalid/wp-login.php": () => redirect(PAGE) });
+    const session = new Session();
+    await session.fetchPage({ url: PAGE, wall: "wordpress" });
+    await session.fetchPage({ url: "https://example.invalid/os/other/", wall: "wordpress" });
+    expect(calls.filter((c) => c.init.method === "POST")).toHaveLength(1);
   });
 });

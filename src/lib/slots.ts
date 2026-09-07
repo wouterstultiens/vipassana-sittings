@@ -58,7 +58,7 @@ export function languageTagsOf(languages: string[]): LanguageTag[] {
  * Every language on offer in the slot. So a row with only a Spanish flag has
  * no English, and a row with both flags has both.
  */
-export const languageTags = (slot: Slot): LanguageTag[] => languageTagsOf(slot.sittings.flatMap((s) => s.listing.languages));
+export const languageTags = (slot: Slot): LanguageTag[] => languageTagsOf(slot.sittings.flatMap((s) => s.host.languages));
 
 // Widths in px of what a row holds, near enough to decide how many tags fit.
 const TAG_WIDTH = 25; // a 21 px flag and its 4 px gap

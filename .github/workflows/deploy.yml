@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       refresh_all:
-        description: Refresh every listing, not only the changed ones
+        description: Refresh every host, not only the changed ones
         type: boolean
         default: false
 

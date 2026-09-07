@@ -7,12 +7,14 @@
   "schedule": "Mon, Thu",
   "event_instruction_languages": ["English"],
   "sub_location": {
+    "id": 4200,
     "name": "Example Host",
     "description": "An example host record",
     "url": "https://example.invalid/host",
     "contact_email": " host@example.invalid ",
     "city": "Example City",
     "country_iso_code": "NL",
-    "time_zone": "Europe/Amsterdam"
+    "time_zone": "Europe/Amsterdam",
+    "gmt_offset": "+01:00"
   }
 }

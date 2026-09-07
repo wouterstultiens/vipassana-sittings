@@ -41,7 +41,7 @@ export function formatSummary(summary: RunSummary): string {
       "Failed",
       failed.map((f) => `- ${f.id}: ${f.reason}`),
     ),
-    ...ids("Without a schedule rule", withoutRule),
+    ...ids("Without a rule", withoutRule),
     ...section(
       "Warnings",
       warnings.map((w) => `- ${w}`),

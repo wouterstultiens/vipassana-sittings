@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { expandSittings } from "@/lib/expand";
 import { languageTags, roundLength, slotsOf, tagsThatFit } from "@/lib/slots";
-import { aListing, aRule } from "@/test/fixtures";
-import type { Listing, ScheduleRule } from "@/schema/listing";
+import { aHost, aRule } from "@/test/fixtures";
+import type { Host, Rule } from "@/schema/host";
 
 const zone = "Europe/Amsterdam";
 // Monday 1 June 2026.
 const from = new Date(Date.UTC(2026, 5, 1));
 const to = new Date(Date.UTC(2026, 5, 2));
-const withRule = (id: number, over: Partial<ScheduleRule> = {}, listing: Partial<Listing> = {}) =>
-  aListing({ id, name: `Listing ${id}`, scheduleRules: [aRule({ start: "19:00", ...over })], ...listing });
-const slotsFor = (...listings: Listing[]) => slotsOf(expandSittings(listings, from, to, zone));
+const withRule = (id: number, over: Partial<Rule> = {}, host: Partial<Host> = {}) =>
+  aHost({ id, name: `Host ${id}`, rules: [aRule({ start: "19:00", ...over })], ...host });
+const slotsFor = (...hosts: Host[]) => slotsOf(expandSittings(hosts, from, to, zone));
 
 describe("roundLength", () => {
   it("rounds to the nearest half hour, and never below one", () => {
@@ -26,7 +26,7 @@ describe("slotsOf", () => {
     const slots = slotsFor(withRule(1), withRule(2, { durationMinutes: 65 }));
     expect(slots).toHaveLength(1);
     expect(slots[0].durationMinutes).toBe(60);
-    expect(slots[0].sittings.map((s) => s.listing.name)).toEqual(["Listing 1", "Listing 2"]);
+    expect(slots[0].sittings.map((s) => s.host.name)).toEqual(["Host 1", "Host 2"]);
   });
 
   it("keeps a different length apart, and orders slots by start then length", () => {

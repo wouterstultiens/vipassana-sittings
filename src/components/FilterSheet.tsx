@@ -8,7 +8,7 @@
 // the drawer, a pulsing ring points at the button.
 import * as React from "react";
 import { SlidersHorizontalIcon } from "lucide-react";
-import type { Listing } from "@/schema/listing";
+import type { Host } from "@/schema/host";
 import { activeCount, EMPTY_FILTERS, type Filters, type SetFilters } from "@/lib/filters";
 import type { Clock } from "@/lib/labels";
 import { ClockToggle } from "@/components/ClockToggle";
@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 export function FilterSheet({
-  listings,
+  hosts,
   filters,
   setFilters,
   zone,
@@ -30,7 +30,7 @@ export function FilterSheet({
   nudge,
   onNotice,
 }: {
-  listings: Listing[];
+  hosts: Host[];
   filters: Filters;
   setFilters: SetFilters;
   zone: string | null;
@@ -57,7 +57,7 @@ export function FilterSheet({
         </div>
         <div className="relative flex min-h-0 flex-1 flex-col">
           <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-none px-4 py-4">
-            <FilterFields listings={listings} filters={filters} setFilters={setFilters} />
+            <FilterFields hosts={hosts} filters={filters} setFilters={setFilters} />
             <div className="mt-6 flex gap-2 border-t pt-4">
               <ZoneSelect value={zone} onChange={setZone} className="h-9 min-w-0 flex-1 max-w-none text-sm" />
               <ClockToggle clock={clock} onChange={setClock} className="h-9 shrink-0 text-sm" />

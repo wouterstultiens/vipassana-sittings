@@ -1,8 +1,8 @@
 // The filter state of the toolbar and the two questions it answers: does this
-// listing pass, and does this sitting pass. The calendar itself answers "which
+// host pass, and does this sitting pass. The calendar itself answers "which
 // weekday" and "which hour", so no filter repeats that.
 import { z } from "zod";
-import { Medium, type Listing } from "@/schema/listing";
+import { type Host, Medium } from "@/schema/host";
 import type { Sitting } from "@/lib/expand";
 import { languageName, MEDIUM_LABEL } from "@/lib/labels";
 
@@ -56,17 +56,17 @@ export const TOGGLE_LABEL: Record<ToggleKey, { long: string; toolbar: string; sh
   questionsAndAnswers: { long: "Questions and answers (Q&A)", toolbar: "Q&A", short: "Q&A" },
 };
 
-/** The filters a listing can answer on its own. */
-export function listingMatches(listing: Listing, f: Filters): boolean {
-  if (f.languages.length && !listing.languages.some((c) => f.languages.includes(c))) return false;
-  if (f.medium.length && !f.medium.includes(listing.medium)) return false;
-  if (f.teacherLed !== null && listing.teacherLed !== f.teacherLed) return false;
-  if (f.questionsAndAnswers !== null && listing.questionsAndAnswers !== f.questionsAndAnswers) return false;
+/** The filters a host can answer on its own. */
+export function hostMatches(host: Host, f: Filters): boolean {
+  if (f.languages.length && !host.languages.some((c) => f.languages.includes(c))) return false;
+  if (f.medium.length && !f.medium.includes(host.medium)) return false;
+  if (f.teacherLed !== null && host.teacherLed !== f.teacherLed) return false;
+  if (f.questionsAndAnswers !== null && host.questionsAndAnswers !== f.questionsAndAnswers) return false;
   return true;
 }
 
 export function sittingMatches(s: Sitting, f: Filters): boolean {
-  if (!listingMatches(s.listing, f)) return false;
+  if (!hostMatches(s.host, f)) return false;
   if (f.durations.length && !f.durations.includes(durationBand(s.rule.durationMinutes))) return false;
   return true;
 }

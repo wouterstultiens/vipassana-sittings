@@ -1,10 +1,6 @@
-// Which join details a sitting uses, and how a password is shown. A schedule
-// rule that carries its own join details overrides the listing's.
-import type { Join, Listing, ScheduleRule } from "@/schema/listing";
-
-export function joinFor(listing: Listing, rule?: ScheduleRule): Join {
-  return rule?.join ?? listing.join;
-}
+// How a password is shown: as a value, or as a note when the value is not in
+// the data.
+import type { Join } from "@/schema/host";
 
 export function passwordNote(password: Join["password"]): string {
   switch (password.kind) {

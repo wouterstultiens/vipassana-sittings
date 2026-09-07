@@ -1,14 +1,14 @@
-// Expands schedule rules into concrete sittings for a date range, seen from
-// the old student's timezone. Wall clock is built in the rule's own IANA zone,
-// so daylight saving is handled per rule.
+// Expands the rules of every host into concrete sittings for a date range,
+// seen from the old student's timezone. Wall clock is built in the host's own
+// IANA zone, so daylight saving is handled per host.
 import { TZDate } from "@date-fns/tz";
 import { addDays, differenceInCalendarDays, getDaysInMonth } from "date-fns";
-import type { Listing, ScheduleRule } from "@/schema/listing";
+import type { Host, Rule } from "@/schema/host";
 
 export type Sitting = {
   key: string;
-  listing: Listing;
-  rule: ScheduleRule;
+  host: Host;
+  rule: Rule;
   start: Date; // instant
   end: Date; // instant
   local: TZDate; // start in the old student's zone
@@ -24,7 +24,7 @@ export const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as con
 /** The place of a day in its week in the old student's zone: Monday 0 to Sunday 6. */
 export const dayOfWeek = (d: Date, zone: string) => (new TZDate(d.getTime(), zone).getDay() + 6) % 7;
 
-function matchesWeekOfMonth(rule: ScheduleRule, d: TZDate): boolean {
+function matchesWeekOfMonth(rule: Rule, d: TZDate): boolean {
   if (!rule.weeksOfMonth) return true;
   const dom = d.getDate();
   const nth = Math.ceil(dom / 7);
@@ -33,27 +33,27 @@ function matchesWeekOfMonth(rule: ScheduleRule, d: TZDate): boolean {
 }
 
 /** All sittings whose start falls in [from, to). */
-export function expandSittings(listings: Listing[], from: Date, to: Date, zone: string): Sitting[] {
+export function expandSittings(hosts: Host[], from: Date, to: Date, zone: string): Sitting[] {
   const out: Sitting[] = [];
   const days = differenceInCalendarDays(to, from) + 3;
-  for (const listing of listings) {
-    for (const [ri, rule] of listing.scheduleRules.entries()) {
+  for (const host of hosts) {
+    for (const [ri, rule] of host.rules.entries()) {
       const [hh, mm] = rule.start.split(":").map(Number);
-      // Walk calendar days in the rule's zone, one day of slack on each side.
-      const first = new TZDate(addDays(from, -1), rule.timeZone);
+      // Walk calendar days in the host's zone, one day of slack on each side.
+      const first = new TZDate(addDays(from, -1), host.timeZone);
       for (let i = 0; i < days; i++) {
         const inZone = addDays(first, i);
         const wd = WEEKDAYS[inZone.getDay()];
         if (!rule.weekdays.includes(wd)) continue;
         if (!matchesWeekOfMonth(rule, inZone)) continue;
-        const start = new TZDate(inZone.getFullYear(), inZone.getMonth(), inZone.getDate(), hh, mm, rule.timeZone);
+        const start = new TZDate(inZone.getFullYear(), inZone.getMonth(), inZone.getDate(), hh, mm, host.timeZone);
         if (start.getTime() < from.getTime() || start.getTime() >= to.getTime()) continue;
         const end = new Date(start.getTime() + rule.durationMinutes * 60_000);
         const local = new TZDate(start.getTime(), zone);
         const localEnd = new TZDate(end.getTime(), zone);
         out.push({
-          key: `${listing.id}-${ri}-${start.getTime()}`,
-          listing,
+          key: `${host.id}-${ri}-${start.getTime()}`,
+          host,
           rule,
           start: new Date(start.getTime()),
           end,
