@@ -1,9 +1,11 @@
 // The detail panel body: everything an old student needs to attend the one
 // sitting they clicked. The calendar already shows every other time this host
 // offers, so the panel never names the schedule. Each fact is shown once: the
-// button names the platform, the time range shows the length.
+// button names the platform, the time range shows the length. The host page
+// and the contact sit with the join details, as rows an old student reads
+// when the link alone is not enough.
 import * as React from "react";
-import { CalendarPlusIcon, CheckIcon, CopyIcon, ExternalLinkIcon, PhoneIcon, VideoIcon } from "lucide-react";
+import { CalendarPlusIcon, CheckIcon, CopyIcon, ExternalLinkIcon, MailIcon, PhoneIcon, VideoIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import type { Sitting } from "@/lib/expand";
 import { downloadIcs } from "@/lib/ics";
@@ -142,6 +144,13 @@ export function SittingDetails({
             </a>
           </Row>
         )}
+        {listing.host.email && (
+          <Row label="Contact">
+            <a className="inline-flex items-center gap-1 underline" href={`mailto:${listing.host.email}`}>
+              <MailIcon className="size-3" /> {listing.host.email}
+            </a>
+          </Row>
+        )}
       </section>
 
       <details className="rounded-md border">
@@ -153,15 +162,7 @@ export function SittingDetails({
         />
       </details>
 
-      <footer className="space-y-1 text-xs text-muted-foreground">
-        {listing.host.email && (
-          <p>
-            Questions? Write to{" "}
-            <a className="underline" href={`mailto:${listing.host.email}`}>
-              {listing.host.email}
-            </a>
-          </p>
-        )}
+      <footer className="text-xs text-muted-foreground">
         <p>Times come from dhamma.org and the host page. Check the host page before you join.</p>
       </footer>
     </div>
