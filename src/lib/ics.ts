@@ -1,11 +1,13 @@
-// A hand-written one-event .ics for one sitting, downloaded as a Blob. Times
-// are wall-clock in the host's zone with a TZID, so the event lands on the
-// host's clock whatever zone the old student's calendar is in.
+// A hand-written .ics for one sitting, downloaded as a Blob: the one sitting,
+// or the sitting and its repeats on that weekday. Times are wall-clock in the
+// host's zone with a TZID, so the event lands on the host's clock whatever
+// zone the old student's calendar is in, and so do the repeats.
 import { TZDate } from "@date-fns/tz";
 import { addMinutes, format } from "date-fns";
-import type { Sitting } from "@/lib/expand";
+import { type Sitting, WEEKDAYS } from "@/lib/expand";
 import { joinFor, passwordNote } from "@/lib/join";
 import { fmtDuration } from "@/lib/labels";
+import type { ScheduleRule } from "@/schema/listing";
 
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 const wallClock = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
@@ -37,12 +39,29 @@ function fold(contentLine: string): string {
   return parts.join("\r\n ");
 }
 
-/** The sitting key: the same sitting downloads to the same event. */
-const uid = (sitting: Sitting) => sitting.key;
+/** The weekday of a sitting on the host's clock, "mon". */
+export const hostWeekday = (sitting: Sitting) => WEEKDAYS[new TZDate(sitting.start, sitting.rule.timeZone).getDay()];
 
-export function icsEvent(sitting: Sitting): string {
+/** How a sitting repeats on its weekday, as an RFC 5545 recurrence: every week, or on the rule's weeks of the month. */
+export function rrule(rule: ScheduleRule, weekday: (typeof WEEKDAYS)[number]): string {
+  const day = weekday.slice(0, 2).toUpperCase();
+  if (!rule.weeksOfMonth) return `FREQ=WEEKLY;BYDAY=${day}`;
+  return `FREQ=MONTHLY;BYDAY=${rule.weeksOfMonth.map((w) => `${w}${day}`).join(",")}`;
+}
+
+/**
+ * The event key. One sitting downloads to the same event every time; its
+ * repeats are one other event, so both can sit in a calendar side by side.
+ */
+const uid = (sitting: Sitting, repeat: boolean) => {
+  const ruleIndex = sitting.listing.scheduleRules.indexOf(sitting.rule);
+  return repeat ? `${sitting.listing.id}-${ruleIndex}-${hostWeekday(sitting)}` : sitting.key;
+};
+
+export function icsEvent(sitting: Sitting, repeat = false): string {
   const { listing, rule } = sitting;
   const join = joinFor(listing, rule);
+  const hostPage = listing.hostPageUrl ?? listing.host.url;
   const start = new TZDate(sitting.start, rule.timeZone);
   const description = [
     `${listing.host.name}, ${listing.name}`,
@@ -52,6 +71,7 @@ export function icsEvent(sitting: Sitting): string {
     `Password: ${passwordNote(join.password)}`,
     join.dialIn ? `Dial in: ${join.dialIn.numbers.join(", ")}` : "",
     join.dialIn?.accessCode ? `Access code: ${join.dialIn.accessCode}` : "",
+    hostPage ? `Host page: ${hostPage}` : "",
   ].filter(Boolean);
 
   return [
@@ -59,10 +79,11 @@ export function icsEvent(sitting: Sitting): string {
     "VERSION:2.0",
     "PRODID:-//vipassana-sittings//EN",
     "BEGIN:VEVENT",
-    `UID:${uid(sitting)}@vipassana-sittings`,
+    `UID:${uid(sitting, repeat)}@vipassana-sittings`,
     `DTSTAMP:${stamp(new Date())}`,
     `DTSTART;TZID=${rule.timeZone}:${wallClock(start)}`,
     `DTEND;TZID=${rule.timeZone}:${wallClock(addMinutes(start, rule.durationMinutes))}`,
+    repeat ? `RRULE:${rrule(rule, hostWeekday(sitting))}` : "",
     `SUMMARY:${esc(`Group sitting: ${listing.name}`)}`,
     `DESCRIPTION:${esc(description.join("\n"))}`,
     join.url ? `URL:${join.url}` : "",
@@ -74,13 +95,13 @@ export function icsEvent(sitting: Sitting): string {
     .join("\r\n");
 }
 
-export const icsFileName = (sitting: Sitting) => `sitting-${uid(sitting)}.ics`;
+export const icsFileName = (sitting: Sitting, repeat = false) => `sitting-${uid(sitting, repeat)}.ics`;
 
-export function downloadIcs(sitting: Sitting) {
-  const blob = new Blob([icsEvent(sitting)], { type: "text/calendar" });
+export function downloadIcs(sitting: Sitting, repeat = false) {
+  const blob = new Blob([icsEvent(sitting, repeat)], { type: "text/calendar" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = icsFileName(sitting);
+  link.download = icsFileName(sitting, repeat);
   link.click();
   URL.revokeObjectURL(link.href);
 }
