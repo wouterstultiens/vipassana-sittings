@@ -46,6 +46,10 @@ export function jumpToHour(scroller: ParentNode, hour: number) {
 // --header. On a phone the toolbar names the day and the grid has no headers.
 const STICKY_HEADER = "z-10 border-b bg-background md:sticky md:top-(--header)";
 
+// On a laptop a rule between the day columns runs from the header down the
+// whole day, so a lone row in a sparse week still reads as its day's.
+const COLUMN_RULE = "md:border-l";
+
 // What a row's width loses to the gutter column and the cell's own padding.
 const GUTTER_WIDTH = 40;
 const CELL_PADDING = 8;
@@ -81,6 +85,7 @@ export function HourGrid({
               key={day.getTime()}
               className={cn(
                 STICKY_HEADER,
+                COLUMN_RULE,
                 "flex items-baseline gap-1.5 px-2 py-1 text-sm whitespace-nowrap",
                 today ? "bg-today text-primary" : "text-muted-foreground",
               )}
@@ -104,7 +109,7 @@ export function HourGrid({
             {fmtHour(h, clock)}
           </div>
           {days.map(({ day, today }, i) => (
-            <div key={day.getTime()} className={cn("flex min-h-5 flex-col gap-0.5 border-t px-1 py-0.5", today && "bg-today")}>
+            <div key={day.getTime()} className={cn("flex min-h-5 flex-col gap-0.5 border-t px-1 py-0.5", COLUMN_RULE, today && "bg-today")}>
               {(byHour[i].get(h) ?? []).map((slot) => (
                 <SlotRow key={slot.key} slot={slot} zone={zone} clock={clock} state={stateOf(slot, now)} width={rowWidth} onOpen={onOpen} />
               ))}
