@@ -36,6 +36,39 @@ describe("icsEvent", () => {
     expect(icsEvent(s)).not.toContain("RRULE");
   });
 
+  describe("with repeat", () => {
+    it("repeats every week on the sitting's weekday only, not on the rule's other weekdays", () => {
+      const [s] = sittingsOf(aListing({ scheduleRules: [aRule({ weekdays: ["mon", "tue", "thu"] })] }));
+      expect(line(icsEvent(s, true), "RRULE")).toBe("RRULE:FREQ=WEEKLY;BYDAY=MO");
+    });
+
+    it("repeats by the month when the rule names weeks of the month", () => {
+      const [s] = sittingsOf(aListing({ scheduleRules: [aRule({ weeksOfMonth: [1, 3] })] }));
+      expect(line(icsEvent(s, true), "RRULE")).toBe("RRULE:FREQ=MONTHLY;BYDAY=1MO,3MO");
+      const [last] = sittingsOf(aListing({ scheduleRules: [aRule({ weeksOfMonth: [-1] })] }), new Date("2026-09-01T00:00:00Z"));
+      expect(line(icsEvent(last, true), "RRULE")).toBe("RRULE:FREQ=MONTHLY;BYDAY=-1MO");
+    });
+
+    it("takes the weekday on the host's clock, not the old student's", () => {
+      // 23:30 Monday in Amsterdam is Tuesday morning in Tokyo, and stays a Monday event.
+      const [s] = expandSittings([aListing({ scheduleRules: [aRule({ start: "23:30" })] })], MONDAY, TUESDAY, "Asia/Tokyo");
+      expect(line(icsEvent(s, true), "RRULE")).toBe("RRULE:FREQ=WEEKLY;BYDAY=MO");
+    });
+
+    it("identifies the repeats by the rule and the weekday, apart from the one sitting", () => {
+      const [s] = sittingsOf(aListing({ scheduleRules: [aRule({ weekdays: ["sun"] }), aRule()] }));
+      expect(line(icsEvent(s, true), "UID")).toBe("UID:772-1-mon@vipassana-sittings");
+      expect(line(icsEvent(s), "UID")).toBe("UID:772-1-1785733200000@vipassana-sittings");
+      expect(icsFileName(s, true)).toBe("sitting-772-1-mon.ics");
+    });
+  });
+
+  it("names the host page, so the calendar holds the way to the schedule", () => {
+    expect(unfold(icsEvent(sitting))).toContain("Host page: https://example.org");
+    const [s] = sittingsOf(aListing({ hostPageUrl: "https://example.org/sittings" }));
+    expect(unfold(icsEvent(s))).toContain("Host page: https://example.org/sittings");
+  });
+
   it("identifies the event by the sitting, so a second download updates the first", () => {
     const listing = aListing({ scheduleRules: [aRule({ weekdays: ["mon", "tue"] }), aRule({ weekdays: ["wed"], start: "20:00" })] });
     const week = sittingsOf(listing, new Date("2026-08-06T00:00:00Z"));

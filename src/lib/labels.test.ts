@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fmtLength, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
+import { fmtLength, fmtRepeat, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
+import { aRule } from "@/test/fixtures";
 
 describe("languageFlag", () => {
   it("maps the languages of the listings, English included", () => {
@@ -30,5 +31,14 @@ describe("fmtLength", () => {
     expect(fmtLength(90)).toBe("1½ h");
     expect(fmtLength(180)).toBe("3 h");
     expect(fmtLength(390)).toBe("6½ h");
+  });
+});
+
+describe("fmtRepeat", () => {
+  it("names the weekday, every week or on the weeks of the month", () => {
+    expect(fmtRepeat(aRule({ weekdays: ["mon", "wed"] }), "wed")).toBe("Every Wednesday");
+    expect(fmtRepeat(aRule({ weeksOfMonth: [1] }), "mon")).toBe("Every 1st Monday");
+    expect(fmtRepeat(aRule({ weeksOfMonth: [1, 3] }), "mon")).toBe("Every 1st and 3rd Monday");
+    expect(fmtRepeat(aRule({ weeksOfMonth: [2, 4, -1] }), "sun")).toBe("Every 2nd, 4th and last Sunday");
   });
 });

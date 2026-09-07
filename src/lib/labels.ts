@@ -1,6 +1,6 @@
 // Turns listing data into the short strings the calendar shows.
 import { TZDate } from "@date-fns/tz";
-import type { Listing } from "@/schema/listing";
+import type { Listing, ScheduleRule } from "@/schema/listing";
 
 const lang = new Intl.DisplayNames(["en"], { type: "language" });
 const region = new Intl.DisplayNames(["en"], { type: "region" });
@@ -101,6 +101,27 @@ export const MEDIUM_LABEL: Record<Listing["medium"], string> = {
   audio: "Audio only",
   stream: "Live stream",
 };
+
+const WEEKDAY_NAME: Record<ScheduleRule["weekdays"][number], string> = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+  sun: "Sunday",
+};
+
+const ordinal = (week: number) => (week === -1 ? "last" : ["1st", "2nd", "3rd", "4th", "5th"][week - 1]);
+
+/** How a rule repeats on one weekday: "Every Monday", "Every 1st and 3rd Monday", "Every last Monday". */
+export function fmtRepeat(rule: ScheduleRule, weekday: ScheduleRule["weekdays"][number]): string {
+  const day = WEEKDAY_NAME[weekday];
+  if (!rule.weeksOfMonth) return `Every ${day}`;
+  const weeks = rule.weeksOfMonth.map(ordinal);
+  const list = weeks.length > 1 ? `${weeks.slice(0, -1).join(", ")} and ${weeks.at(-1)}` : weeks[0];
+  return `Every ${list} ${day}`;
+}
 
 export function fmtDuration(min: number): string {
   if (min < 60) return `${min} min`;
