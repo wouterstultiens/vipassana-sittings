@@ -128,6 +128,7 @@ export const fmtWeekday = format({ weekday: "short" });
 export const fmtDayOfMonth = format({ day: "numeric" });
 export const fmtDayMonth = format({ day: "numeric", month: "short" });
 export const fmtDayMonthYear = format({ day: "numeric", month: "short", year: "numeric" });
+export const fmtMonth = format({ month: "long" });
 
 export function fmtDate(d: Date, zone: string, opts: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }): string {
   return new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone }).format(d);
