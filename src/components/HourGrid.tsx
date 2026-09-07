@@ -54,7 +54,7 @@ export function HourGrid({
           className={cn(
             STICKY_HEADER,
             "flex items-baseline gap-1.5 px-2 py-1 text-sm whitespace-nowrap",
-            today ? "text-primary" : "text-muted-foreground",
+            today ? "bg-today text-primary" : "text-muted-foreground",
           )}
         >
           <span>{fmtWeekday(day, zone)}</span>
@@ -73,8 +73,8 @@ export function HourGrid({
           >
             {hourLabel(h)}
           </div>
-          {days.map(({ day }, i) => (
-            <div key={day.getTime()} className="flex min-h-5 flex-col gap-0.5 border-t px-1 py-0.5">
+          {days.map(({ day, today }, i) => (
+            <div key={day.getTime()} className={cn("flex min-h-5 flex-col gap-0.5 border-t px-1 py-0.5", today && "bg-today")}>
               {(byHour[i].get(h) ?? []).map((slot) => (
                 <SlotRow key={slot.key} slot={slot} zone={zone} state={stateOf(slot, now)} width={rowWidth} onOpen={onOpen} />
               ))}

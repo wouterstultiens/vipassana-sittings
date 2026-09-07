@@ -1,6 +1,7 @@
 // One row on a day list: the start time, how many sittings start then, and
 // at the right the tags for what varies: a flag per language on offer, as
 // many as the row's width allows, and the length when it is not one hour.
+import * as React from "react";
 import { fmtLength, fmtTime } from "@/lib/labels";
 import { languageTags, tagsThatFit, type Slot } from "@/lib/slots";
 import { LanguageTagView, tagTitle } from "@/components/LanguageTag";
@@ -8,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 export type SlotState = "ahead" | "now" | "ended";
 
-export function SlotRow({
+export const SlotRow = React.memo(function SlotRow({
   slot,
   zone,
   state,
@@ -42,8 +43,8 @@ export function SlotRow({
       onClick={() => onOpen(slot)}
       aria-label={label}
       className={cn(
-        "flex h-7 w-full items-center gap-2 overflow-hidden rounded-md border bg-card px-2 text-left text-sm transition-colors hover:bg-accent md:h-6",
-        state === "now" && "border-primary bg-primary/10 hover:bg-primary/15",
+        "flex h-7 w-full items-center gap-2 overflow-hidden rounded-md border bg-card px-2 text-left text-sm hover:bg-accent active:bg-accent md:h-6",
+        state === "now" && "border-primary bg-primary/10 hover:bg-primary/15 active:bg-primary/15",
         state === "ended" && "opacity-50",
       )}
     >
@@ -58,4 +59,4 @@ export function SlotRow({
       </span>
     </button>
   );
-}
+});

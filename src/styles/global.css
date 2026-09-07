@@ -1,48 +1,56 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0.004 90);
-  --foreground: oklch(0.22 0.02 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.02 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.02 60);
-  --primary: oklch(0.52 0.12 55);
-  --primary-foreground: oklch(0.98 0.01 80);
-  --secondary: oklch(0.95 0.01 80);
+  color-scheme: light;
+  /* Warm sand neutrals on the Radix step model: the page is paper (step 3),
+     rows and popovers are near white (step 1), so a dense grid of rows has
+     relief instead of one glowing sheet. Borders are step 6, hover step 4. */
+  --background: oklch(0.96 0.006 85);
+  --foreground: oklch(0.24 0.015 60);
+  --card: oklch(0.992 0.003 85);
+  --card-foreground: oklch(0.24 0.015 60);
+  --popover: oklch(0.992 0.003 85);
+  --popover-foreground: oklch(0.24 0.015 60);
+  --primary: oklch(0.54 0.13 52);
+  --primary-foreground: oklch(0.985 0.01 80);
+  --secondary: oklch(0.925 0.008 80);
   --secondary-foreground: oklch(0.3 0.02 60);
-  --muted: oklch(0.95 0.01 80);
-  --muted-foreground: oklch(0.5 0.02 60);
-  --accent: oklch(0.93 0.03 70);
-  --accent-foreground: oklch(0.3 0.02 60);
-  --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.9 0.01 80);
-  --input: oklch(0.9 0.01 80);
-  --ring: oklch(0.6 0.1 55);
+  --muted: oklch(0.925 0.008 80);
+  --muted-foreground: oklch(0.48 0.015 60);
+  --accent: oklch(0.91 0.015 75);
+  --accent-foreground: oklch(0.24 0.015 60);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.87 0.01 80);
+  --input: oklch(0.87 0.01 80);
+  --ring: oklch(0.6 0.11 52);
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: oklch(0.19 0.008 60);
+  color-scheme: dark;
+  /* Same hue, lightness mirrored: page step 2, rows step 3, popovers a step
+     above, borders step 6 so the grid stays legible on a dim screen. */
+  --background: oklch(0.205 0.006 70);
   --foreground: oklch(0.93 0.008 80);
-  --card: oklch(0.23 0.01 60);
+  --card: oklch(0.255 0.008 70);
   --card-foreground: oklch(0.93 0.008 80);
-  --popover: oklch(0.23 0.01 60);
+  --popover: oklch(0.275 0.009 70);
   --popover-foreground: oklch(0.93 0.008 80);
-  --primary: oklch(0.72 0.11 60);
-  --primary-foreground: oklch(0.2 0.02 60);
-  --secondary: oklch(0.28 0.012 65);
+  --primary: oklch(0.78 0.12 70);
+  --primary-foreground: oklch(0.2 0.03 60);
+  --secondary: oklch(0.31 0.01 70);
   --secondary-foreground: oklch(0.9 0.008 80);
-  --muted: oklch(0.28 0.012 65);
-  --muted-foreground: oklch(0.68 0.012 70);
-  --accent: oklch(0.32 0.02 65);
+  --muted: oklch(0.31 0.01 70);
+  --muted-foreground: oklch(0.72 0.012 75);
+  --accent: oklch(0.33 0.014 70);
   --accent-foreground: oklch(0.93 0.008 80);
-  --destructive: oklch(0.62 0.2 27);
-  --border: oklch(0.32 0.012 65);
-  --input: oklch(0.32 0.012 65);
-  --ring: oklch(0.6 0.09 60);
+  --destructive: oklch(0.65 0.19 27);
+  --border: oklch(0.36 0.01 70);
+  --input: oklch(0.36 0.01 70);
+  --ring: oklch(0.7 0.1 70);
 }
 
 @theme inline {
@@ -64,6 +72,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* Today's column: an opaque wash of the primary over the page, so the
+     sticky day header still hides the rows that scroll under it. */
+  --color-today: color-mix(in oklch, var(--primary) 6%, var(--background));
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -73,4 +84,6 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; }
+  /* A tap acts at once: no wait for a possible double tap to zoom. */
+  button, [role="button"], a, label { touch-action: manipulation; }
 }

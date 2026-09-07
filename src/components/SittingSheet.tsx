@@ -46,7 +46,7 @@ function SlotContent({ slot, zone }: { slot: Slot; zone: string }) {
           <li key={s.key}>
             <button
               type="button"
-              className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-accent active:bg-accent"
               onClick={() => setPicked(s)}
             >
               <div className="min-w-0 flex-1">
