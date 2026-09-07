@@ -1,22 +1,24 @@
 // The calendar: seven day lists from today on one hour axis, side by side on
-// a laptop and stacked in one scroll on a phone, under a toolbar that sticks
-// to the top. Filters and the timezone come back from local storage on the
-// next visit. A row opens the sitting sheet.
+// a laptop and one day per screen on a phone, under a toolbar that sticks to
+// the top. Filters and the timezone come back from local storage on the next
+// visit. A row opens the sitting sheet.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
 import { EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
 import { fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
+import { FIRST_PAGE, turnDay, type Page } from "@/lib/page";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
 import { slotsOf, type Slot } from "@/lib/slots";
 import { useSize } from "@/hooks/use-size";
 import { usePhone } from "@/hooks/use-phone";
+import { useSwipe } from "@/hooks/use-swipe";
 import { AppliedFilters } from "@/components/AppliedFilters";
-import { dayId, DayStrip } from "@/components/DayStrip";
+import { DayStrip } from "@/components/DayStrip";
 import { FilterSheet } from "@/components/FilterSheet";
 import { FilterToolbar } from "@/components/FilterToolbar";
-import { HourGrid, NOW_HOUR_ID, type Day } from "@/components/HourGrid";
+import { HourGrid, hourId, hourInView, type Day } from "@/components/HourGrid";
 import { SittingSheet } from "@/components/SittingSheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
@@ -44,7 +46,8 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const setFilters: SetFilters = (update) => setPrefs((p) => p && { ...p, filters: update(p.filters) });
   const setZone = (z: string | null) => setPrefs((p) => p && { ...p, zone: z });
 
-  const [weeks, setWeeks] = React.useState(0);
+  const [page, setPage] = React.useState<Page>(FIRST_PAGE);
+  const { weeks } = page;
   const [open, setOpen] = React.useState<Slot | null>(null);
 
   // The week's data only changes with the week, the zone, or the filters. It
@@ -75,24 +78,39 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
 
   // The header's height feeds --header, so the day headers and the jumps land under it.
   const [headerRef, { height: headerHeight }] = useSize<HTMLDivElement>();
-  const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView();
+  const jumpTo = (hour: number) => document.getElementById(hourId(hour))?.scrollIntoView();
 
   // Once, after the zone is known and the header is measured, so the jump
   // lands under it: open on the current hour, as a calendar does.
   const scrolled = React.useRef(false);
   React.useEffect(() => {
-    if (!prefs || !headerHeight || scrolled.current) return;
+    if (!prefs || !headerHeight || scrolled.current || nowHour === null) return;
     scrolled.current = true;
-    jumpTo(NOW_HOUR_ID);
-  }, [prefs, headerHeight]);
+    jumpTo(nowHour);
+  }, [prefs, headerHeight, nowHour]);
+
+  // Turning the page keeps the hour at the top of the view, so the old
+  // student compares the same hour across days and weeks, as on a calendar.
+  const keptHour = React.useRef<number | null>(null);
+  const turnTo = (next: Page) => {
+    if (next === page) return;
+    keptHour.current = hourInView();
+    setPage(next);
+  };
+  React.useLayoutEffect(() => {
+    if (keptHour.current === null) return;
+    jumpTo(keptHour.current);
+    keptHour.current = null;
+  }, [page]);
+  const swipe = useSwipe((dir) => turnTo(turnDay(page, dir)));
 
   const previous = (
-    <Button variant="outline" size="icon-sm" disabled={weeks === 0} onClick={() => setWeeks((w) => w - 1)} aria-label="Previous week">
+    <Button variant="outline" size="icon-sm" disabled={weeks === 0} onClick={() => turnTo({ weeks: weeks - 1, day: 0 })} aria-label="Previous week">
       <ChevronLeftIcon />
     </Button>
   );
   const next = (
-    <Button variant="outline" size="icon-sm" disabled={weeks === WEEKS_AHEAD} onClick={() => setWeeks((w) => w + 1)} aria-label="Next week">
+    <Button variant="outline" size="icon-sm" disabled={weeks === WEEKS_AHEAD} onClick={() => turnTo({ weeks: weeks + 1, day: 0 })} aria-label="Next week">
       <ChevronRightIcon />
     </Button>
   );
@@ -104,7 +122,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
       <div ref={headerRef} className="sticky top-0 z-20 border-b bg-background">
         <div className="hidden flex-wrap items-center gap-2 px-3 py-1.5 md:flex">
           {previous}
-          <Button variant="outline" size="sm" disabled={weeks === 0} onClick={() => setWeeks(0)}>
+          <Button variant="outline" size="sm" disabled={weeks === 0} onClick={() => turnTo(FIRST_PAGE)}>
             Today
           </Button>
           {next}
@@ -129,18 +147,16 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
             <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
           </div>
         </div>
-        <DayStrip className="md:hidden" days={dayLists} zone={zone} headerHeight={headerHeight} onPick={(i) => jumpTo(dayId(i))} />
+        <DayStrip className="md:hidden" days={dayLists} zone={zone} active={page.day} onPick={(day) => turnTo({ weeks, day })} />
       </div>
 
       <AppliedFilters filters={filters} setFilters={setFilters} />
 
       <div className="px-3 pb-6">
         {phone ? (
-          dayLists.map((d, i) => (
-            <div key={d.day.getTime()} id={dayId(i)} className="scroll-mt-(--header)">
-              <HourGrid days={[d]} zone={zone} now={now} nowHour={d.today ? nowHour : null} onOpen={setOpen} />
-            </div>
-          ))
+          <div {...swipe} className="touch-pan-y">
+            <HourGrid days={[dayLists[page.day]]} zone={zone} now={now} nowHour={dayLists[page.day].today ? nowHour : null} onOpen={setOpen} />
+          </div>
         ) : (
           <HourGrid days={dayLists} zone={zone} now={now} nowHour={nowHour} onOpen={setOpen} />
         )}
