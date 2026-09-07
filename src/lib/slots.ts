@@ -41,13 +41,9 @@ export type LanguageTag = { flag: LanguageFlag | null; codes: string[] };
 
 const englishFirst = (a: string, b: string) => (a === "en" ? -1 : b === "en" ? 1 : a.localeCompare(b));
 
-/**
- * Every language on offer in the slot, English first, one tag per flag. So a
- * row with only a Spanish flag has no English, and a row with both flags has
- * both.
- */
-export function languageTags(slot: Slot): LanguageTag[] {
-  const codes = [...new Set(slot.sittings.flatMap((s) => s.listing.languages))].sort(englishFirst);
+/** The tags for a set of language codes, English first, one tag per flag. */
+export function languageTagsOf(languages: string[]): LanguageTag[] {
+  const codes = [...new Set(languages)].sort(englishFirst);
   const byFlag = new Map<string, LanguageTag>();
   for (const code of codes) {
     const flag = languageFlag(code);
@@ -57,6 +53,12 @@ export function languageTags(slot: Slot): LanguageTag[] {
   }
   return [...byFlag.values()];
 }
+
+/**
+ * Every language on offer in the slot. So a row with only a Spanish flag has
+ * no English, and a row with both flags has both.
+ */
+export const languageTags = (slot: Slot): LanguageTag[] => languageTagsOf(slot.sittings.flatMap((s) => s.listing.languages));
 
 // Widths in px of what a row holds, near enough to decide how many tags fit.
 const TAG_WIDTH = 25; // a 21 px flag and its 4 px gap

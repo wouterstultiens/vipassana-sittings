@@ -2,10 +2,10 @@
 // bottom on a phone. One sitting shows its details at once; several show a
 // list to pick from, and the pick replaces the list with a way back.
 import * as React from "react";
-import { ChevronLeftIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Sitting } from "@/lib/expand";
 import type { Slot } from "@/lib/slots";
-import { countryName, displayHost, fmtDate, fmtDuration, fmtTime } from "@/lib/labels";
+import { fmtDate, fmtDuration, fmtTime } from "@/lib/labels";
 import { usePhone } from "@/hooks/use-phone";
 import { ListingBadges } from "@/components/ListingBadges";
 import { SittingDetails } from "@/components/SittingDetails";
@@ -22,7 +22,7 @@ function SlotContent({ slot, zone }: { slot: Slot; zone: string }) {
         {slot.sittings.length > 1 && (
           <div className="border-b px-3 py-2">
             <Button variant="ghost" size="sm" onClick={() => setPicked(null)}>
-              <ChevronLeftIcon /> Back to {time}
+              <ChevronLeftIcon /> Back
             </Button>
           </div>
         )}
@@ -40,23 +40,22 @@ function SlotContent({ slot, zone }: { slot: Slot; zone: string }) {
           {time} – {fmtTime(slot.end, zone)}
           <span className="ml-2 text-sm font-normal text-muted-foreground">{fmtDuration(slot.durationMinutes)}</span>
         </SheetTitle>
-        <div className="mt-1 text-sm text-muted-foreground">{slot.sittings.length} sittings start then. Pick one.</div>
       </header>
-      <ul className="min-h-0 flex-1 overflow-y-auto p-2">
+      <ul className="min-h-0 flex-1 divide-y overflow-y-auto">
         {slot.sittings.map((s) => (
           <li key={s.key}>
             <button
               type="button"
-              className="w-full rounded-md px-3 py-2.5 text-left transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-accent"
               onClick={() => setPicked(s)}
             >
-              <div className="font-medium">{s.listing.name}</div>
-              <div className="truncate text-xs text-muted-foreground">
-                {displayHost(s.listing)} · {countryName(s.listing.country)}
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{s.listing.name}</div>
+                <div className="mt-1">
+                  <ListingBadges listing={s.listing} size="xs" />
+                </div>
               </div>
-              <div className="mt-1.5">
-                <ListingBadges listing={s.listing} size="xs" />
-              </div>
+              <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
             </button>
           </li>
         ))}

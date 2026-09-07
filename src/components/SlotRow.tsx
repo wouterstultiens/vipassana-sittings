@@ -1,28 +1,10 @@
 // One row on a day list: the start time, how many sittings start then, and
 // at the right the tags for what varies: a flag per language on offer, as
 // many as the row's width allows, and the length when it is not one hour.
-import { fmtLength, fmtTime, languageTitle } from "@/lib/labels";
-import { languageTags, tagsThatFit, type LanguageTag, type Slot } from "@/lib/slots";
-import { FlagIcon } from "@/components/FlagIcon";
+import { fmtLength, fmtTime } from "@/lib/labels";
+import { languageTags, tagsThatFit, type Slot } from "@/lib/slots";
+import { LanguageTagView, tagTitle } from "@/components/LanguageTag";
 import { cn } from "@/lib/utils";
-
-const tagTitle = (tag: LanguageTag) => tag.codes.map(languageTitle).join(", ");
-
-function LanguageTagView({ tag }: { tag: LanguageTag }) {
-  const title = tagTitle(tag);
-  if (tag.flag) {
-    return (
-      <span role="img" title={title} aria-label={title} className="inline-flex">
-        <FlagIcon flag={tag.flag} />
-      </span>
-    );
-  }
-  return (
-    <span title={title} aria-label={title} className="rounded-sm border px-1 font-mono text-[10px] leading-4 lowercase">
-      {tag.codes[0]}
-    </span>
-  );
-}
 
 export type SlotState = "ahead" | "now" | "ended";
 
