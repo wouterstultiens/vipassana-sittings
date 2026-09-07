@@ -1,4 +1,5 @@
 import type { Listing } from "@/schema/listing";
+import { TOGGLE_LABEL } from "@/lib/filters";
 import { countryName, MEDIUM_LABEL } from "@/lib/labels";
 import { languageTagsOf } from "@/lib/slots";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +15,8 @@ export function ListingBadges({ listing, size = "sm" }: { listing: Listing; size
   const small = xs ? "px-1 py-0 text-[10px]" : "";
   const badges = [
     listing.medium !== "video" && <Badge key="medium" variant="outline" className={small}>{MEDIUM_LABEL[listing.medium]}</Badge>,
-    listing.teacherLed && <Badge key="teacher" className={small}>Teacher led</Badge>,
-    listing.questionsAndAnswers && <Badge key="qa" variant="outline" className={small}>Q&amp;A</Badge>,
+    listing.teacherLed && <Badge key="teacher" className={small}>{TOGGLE_LABEL.teacherLed.short}</Badge>,
+    listing.questionsAndAnswers && <Badge key="qa" variant="outline" className={small}>{TOGGLE_LABEL.questionsAndAnswers.short}</Badge>,
   ].filter(Boolean);
   return (
     <div className={`flex flex-wrap items-center gap-1 ${xs ? "text-xs" : "text-sm"}`}>

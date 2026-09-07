@@ -42,6 +42,20 @@ export const DURATION_LABEL: Record<DurationBand, string> = {
   day: "Half day or more",
 };
 
+/** The two yes-or-no filters. */
+export type ToggleKey = "teacherLed" | "questionsAndAnswers";
+
+/**
+ * A toggle's name: spelled out in the phone's sheet, a word or two in the
+ * laptop's toolbar with the full name on hover, and short on a row or a chip.
+ * A teacher led sitting is one an assistant teacher (AT) of this tradition
+ * conducts; the hand-kept data marks only those.
+ */
+export const TOGGLE_LABEL: Record<ToggleKey, { long: string; toolbar: string; short: string }> = {
+  teacherLed: { long: "Led by an assistant teacher (AT)", toolbar: "Assistant teacher", short: "Teacher led" },
+  questionsAndAnswers: { long: "Questions and answers (Q&A)", toolbar: "Q&A", short: "Q&A" },
+};
+
 /** The filters a listing can answer on its own. */
 export function listingMatches(listing: Listing, f: Filters): boolean {
   if (f.languages.length && !listing.languages.some((c) => f.languages.includes(c))) return false;
@@ -80,7 +94,9 @@ export function appliedFilters(f: Filters): AppliedFilter[] {
     ...f.languages.map((c) => ({ label: languageName(c), remove: (p: Filters) => ({ ...p, languages: toggle(p.languages, c) }) })),
     ...f.durations.map((d) => ({ label: DURATION_LABEL[d], remove: (p: Filters) => ({ ...p, durations: toggle(p.durations, d) }) })),
     ...f.medium.map((m) => ({ label: MEDIUM_LABEL[m], remove: (p: Filters) => ({ ...p, medium: toggle(p.medium, m) }) })),
-    ...(f.teacherLed === null ? [] : [{ label: "Teacher led", remove: (p: Filters) => ({ ...p, teacherLed: null }) }]),
-    ...(f.questionsAndAnswers === null ? [] : [{ label: "With Q&A", remove: (p: Filters) => ({ ...p, questionsAndAnswers: null }) }]),
+    ...(f.teacherLed === null ? [] : [{ label: TOGGLE_LABEL.teacherLed.short, remove: (p: Filters) => ({ ...p, teacherLed: null }) }]),
+    ...(f.questionsAndAnswers === null
+      ? []
+      : [{ label: TOGGLE_LABEL.questionsAndAnswers.short, remove: (p: Filters) => ({ ...p, questionsAndAnswers: null }) }]),
   ];
 }

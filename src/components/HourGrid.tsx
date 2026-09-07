@@ -2,7 +2,8 @@
 // day, and in each hour cell the slots that start in that hour, one
 // fixed-height row each. The rows of one hour line up across the days, so
 // scrolling down is moving through the day, as on a calendar. The laptop
-// shows seven days in one grid; the phone shows one day's grid at a time.
+// shows seven days in one grid that the page scrolls; the phone shows one
+// grid per day pane, each pane a scroller of its own.
 import * as React from "react";
 import { fmtDayOfMonth, fmtWeekday, hourIn } from "@/lib/labels";
 import type { Slot } from "@/lib/slots";
@@ -17,19 +18,28 @@ const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 const stateOf = (slot: Slot, now: Date): SlotState => (slot.end <= now ? "ended" : slot.start <= now ? "now" : "ahead");
 
-/** The id of an hour's gutter cell, where the page scrolls to on load and when a day is turned. */
-export const hourId = (h: number) => `hour-${h}`;
+/** The gutter cell of an hour inside a scroller: the page on a laptop, one day pane on a phone. */
+const hourCell = (scroller: ParentNode, h: number) => scroller.querySelector<HTMLElement>(`[data-hour="${h}"]`);
 
-/** The hour whose gutter cell is at the top of the view, under the sticky headers. */
-export function hourInView(): number {
+/** The hour whose gutter cell is at the top of the view, under the sticky headers on a laptop. */
+export function hourInView(scroller: ParentNode = document): number {
+  const top = scroller instanceof HTMLElement ? scroller.getBoundingClientRect().top : 0;
   let active = 0;
   for (const h of HOURS) {
-    const cell = document.getElementById(hourId(h));
+    const cell = hourCell(scroller, h);
     if (!cell) continue;
-    const margin = parseFloat(getComputedStyle(cell).scrollMarginTop);
-    if (cell.getBoundingClientRect().top <= margin + 1) active = h;
+    const margin = scroller instanceof HTMLElement ? 0 : parseFloat(getComputedStyle(cell).scrollMarginTop);
+    if (cell.getBoundingClientRect().top <= top + margin + 1) active = h;
   }
   return active;
+}
+
+/** Scrolls an hour's gutter cell to the top of its scroller. A pane scrolls itself, so the snap row it sits in stays put. */
+export function jumpToHour(scroller: ParentNode, hour: number) {
+  const cell = hourCell(scroller, hour);
+  if (!cell) return;
+  if (scroller instanceof HTMLElement) scroller.scrollTop = cell.offsetTop;
+  else cell.scrollIntoView();
 }
 
 // On a laptop the day headers stick under the toolbar, whose height is
@@ -83,9 +93,9 @@ export function HourGrid({
       {HOURS.map((h) => (
         <React.Fragment key={h}>
           <div
-            id={hourId(h)}
+            data-hour={h}
             className={cn(
-              "border-t pt-0.5 pr-2 text-[11px] leading-4 tabular-nums scroll-mt-(--header) md:[scroll-margin-top:calc(var(--header)+2.25rem)]",
+              "border-t pt-0.5 pr-2 text-[11px] leading-4 tabular-nums md:[scroll-margin-top:calc(var(--header)+2.25rem)]",
               h === nowHour ? "font-semibold text-primary" : "text-muted-foreground",
             )}
           >

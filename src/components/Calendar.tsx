@@ -6,7 +6,7 @@ import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
 import { expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
-import { EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
+import { activeCount, EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
 import { fmtDate, fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
 import { slotsOf, type Slot } from "@/lib/slots";
@@ -16,7 +16,7 @@ import { AppliedFilters } from "@/components/AppliedFilters";
 import { DayStrip } from "@/components/DayStrip";
 import { FilterSheet } from "@/components/FilterSheet";
 import { FilterToolbar } from "@/components/FilterToolbar";
-import { HourGrid, hourId, hourInView, type Day } from "@/components/HourGrid";
+import { HourGrid, hourInView, jumpToHour, type Day } from "@/components/HourGrid";
 import { SittingSheet } from "@/components/SittingSheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
@@ -48,6 +48,8 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const filters = prefs?.filters ?? EMPTY_FILTERS;
   const setFilters: SetFilters = (update) => setPrefs((p) => p && { ...p, filters: update(p.filters) });
   const setZone = (z: string | null) => setPrefs((p) => p && { ...p, zone: z });
+  // The ring around the filters, until one is chosen. Not before the stored filters are known, so it never flashes.
+  const nudge = prefs !== null && activeCount(filters) === 0;
 
   const [page, setPage] = React.useState<Page>(FIRST_PAGE);
   const { weeks } = page;
@@ -79,37 +81,70 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const nowHour = todayIdx === -1 ? null : hourIn(now, zone);
   const phone = usePhone();
 
-  // The header's height feeds --header, so the day headers and the jumps land under it.
+  // The phone's day panes sit in one row that snaps a pane per screen. Each
+  // pane scrolls its own hours, so a drag peeks at the next day, and the
+  // pane the drag settles on becomes the day.
+  const pagerRef = React.useRef<HTMLDivElement>(null);
+  const panes = () => Array.from(pagerRef.current?.children ?? []) as HTMLElement[];
+  // Where the hour jumps go: every pane on a phone, the page on a laptop.
+  const scrollers = (): ParentNode[] => (phone ? panes() : [document]);
+
+  // The header's height feeds --header, so the laptop's day headers and jumps land under it.
   const [headerRef, { height: headerHeight }] = useSize<HTMLDivElement>();
-  const jumpTo = (hour: number) => document.getElementById(hourId(hour))?.scrollIntoView();
 
-  // Once, after the zone is known and the header is measured, so the jump
-  // lands under it: open on the current hour, as a calendar does.
-  const scrolled = React.useRef(false);
+  // Once per layout, after the zone is known and the header is measured, so
+  // the jump lands under it: open on the current hour, as a calendar does.
+  // The phone layout arrives a render after hydration, so it gets its own jump.
+  const scrolledFor = React.useRef<boolean | null>(null);
   React.useEffect(() => {
-    if (!prefs || !headerHeight || scrolled.current || nowHour === null) return;
-    scrolled.current = true;
-    jumpTo(nowHour);
-  }, [prefs, headerHeight, nowHour]);
+    if (!prefs || !headerHeight || scrolledFor.current === phone || nowHour === null) return;
+    scrolledFor.current = phone;
+    for (const s of scrollers()) jumpToHour(s, nowHour);
+  }, [prefs, headerHeight, nowHour, phone]);
 
-  // Turning the page keeps the hour at the top of the view, so the old
+  // Turning the week keeps the hour at the top of the view, so the old
   // student compares the same hour across days and weeks, as on a calendar.
   const keptHour = React.useRef<number | null>(null);
   const turnTo = (next: Page) => {
-    keptHour.current = hourInView();
+    keptHour.current = hourInView(phone ? panes()[page.day] : document);
     setPage(next);
   };
   React.useLayoutEffect(() => {
     if (keptHour.current === null) return;
-    jumpTo(keptHour.current);
+    for (const s of scrollers()) jumpToHour(s, keptHour.current);
     keptHour.current = null;
   }, [page]);
 
-  // On a phone a turn starts the new day from the top of the page, with the
-  // applied filters in view.
-  const turnFromTop = (next: Page) => {
-    setPage(next);
-    scrollTo(0, 0);
+  // The strip's marker follows the drag through --day on the phone root: a
+  // fraction between two days while the row moves, the day once it settles.
+  const phoneRef = React.useRef<HTMLDivElement>(null);
+  const settled = React.useRef(true);
+
+  // Every other pane opens on the hour of the pane on screen, so a peek shows the same hour on the next day.
+  const alignPanes = () => {
+    const all = panes();
+    const hour = hourInView(all[page.day]);
+    all.forEach((pane, i) => i !== page.day && jumpToHour(pane, hour));
+  };
+  const onDrag = () => {
+    const pager = pagerRef.current;
+    if (!pager) return;
+    const progress = pager.scrollLeft / pager.clientWidth;
+    phoneRef.current?.style.setProperty("--day", String(progress));
+    const nearest = Math.round(progress);
+    if (Math.abs(progress - nearest) < 0.01) {
+      settled.current = true;
+      if (nearest !== page.day) setPage((p) => ({ ...p, day: nearest }));
+    } else if (settled.current) {
+      settled.current = false;
+      alignPanes();
+    }
+  };
+  const slideTo = (day: number) => {
+    const pager = pagerRef.current;
+    if (!pager) return;
+    alignPanes();
+    pager.scrollTo({ left: day * pager.clientWidth, behavior: "smooth" });
   };
 
   const shownDay = dayLists[page.day];
@@ -130,7 +165,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
             {fmtDayMonth(from, zone)} – {fmtDayMonthYear(days[6], zone)}
           </span>
           <div className="mx-1 h-6 w-px bg-border" />
-          <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} />
+          <FilterToolbar listings={listings} filters={filters} setFilters={setFilters} nudge={nudge} />
           <div className="ml-auto flex items-center gap-2">
             <ZoneSelect value={prefs?.zone ?? null} onChange={setZone} />
             <ThemeToggle />
@@ -144,33 +179,37 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     </>
   );
 
-  // The phone's toolbar names the day in full, with the filters and the
-  // theme at the right. The day strip at the bottom turns the day, in reach
-  // of the thumb.
+  // The phone fills the screen: the toolbar names the day in full, with the
+  // filters and the theme at the right; the day panes take the middle; the
+  // day strip at the bottom turns the day, in reach of the thumb.
   const phoneView = (
-    <>
-      <div ref={headerRef} className="sticky top-0 z-20 border-b bg-background">
+    <div ref={phoneRef} className="flex h-dvh flex-col" style={{ "--day": page.day } as React.CSSProperties}>
+      <div ref={headerRef} className="border-b">
         <div className="flex items-center gap-2 px-3 py-1.5">
           <h2 className={cn("truncate text-sm font-semibold", shownDay.today && "text-primary")}>{fmtDate(shownDay.day, zone)}</h2>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} />
+            <FilterSheet listings={listings} filters={filters} setFilters={setFilters} zone={prefs?.zone ?? null} setZone={setZone} nudge={nudge} />
             <ThemeToggle />
           </div>
         </div>
       </div>
       <AppliedFilters filters={filters} setFilters={setFilters} />
-      <div className="px-3 pb-[calc(env(safe-area-inset-bottom)+4.5rem)]">
-        <HourGrid days={[shownDay]} zone={zone} now={now} nowHour={shownDay.today ? nowHour : null} headers={false} onOpen={setOpen} />
+      <div ref={pagerRef} onScroll={onDrag} className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none]">
+        {dayLists.map((day, i) => (
+          <div key={i} className="relative h-full w-full shrink-0 snap-start overflow-y-auto px-3 pb-6 [scrollbar-width:none]">
+            <HourGrid days={[day]} zone={zone} now={now} nowHour={day.today ? nowHour : null} headers={false} onOpen={setOpen} />
+          </div>
+        ))}
       </div>
       <DayStrip
         days={dayLists}
         zone={zone}
         active={page.day}
-        onPick={(day) => turnFromTop({ weeks, day })}
-        previousWeek={weeks > 0 ? () => turnFromTop({ ...page, weeks: weeks - 1 }) : undefined}
-        nextWeek={weeks < WEEKS_AHEAD ? () => turnFromTop({ ...page, weeks: weeks + 1 }) : undefined}
+        onPick={slideTo}
+        previousWeek={weeks > 0 ? () => turnTo({ ...page, weeks: weeks - 1 }) : undefined}
+        nextWeek={weeks < WEEKS_AHEAD ? () => turnTo({ ...page, weeks: weeks + 1 }) : undefined}
       />
-    </>
+    </div>
   );
 
   return (

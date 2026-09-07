@@ -29,8 +29,12 @@ The gutter of 24 hours on the left of the day lists. Each day list has one cell 
 _Avoid_: timeline, time scale, grid
 
 **Day strip**:
-The row of seven days fixed at the bottom of the screen on a phone, with the week arrows at its ends. A tap turns to that day list, and the day on screen is marked.
+The row of seven days at the bottom of the screen on a phone, with the week arrows at its ends. A tap turns to that day list, and the marker under the day on screen slides with a swipe of the day panes.
 _Avoid_: tabs, day picker, date bar
+
+**Day pane**:
+One day list on a phone, as one screen wide and a scroller of its own. The seven panes of a week sit in one row that snaps a pane per screen, so a swipe peeks at the next day and settles on it.
+_Avoid_: page, slide, panel, carousel
 
 **Tag**:
 A short mark on a slot for what varies between slots: a flag per language on offer, or a length other than one hour.
