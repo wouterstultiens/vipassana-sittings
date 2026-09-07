@@ -1,6 +1,7 @@
-// What the old student chose last time: the filters and the timezone, where
-// null means "follow the device". One key, one JSON object, read on mount and
-// written on every change.
+// What the old student chose last time: the filters, the timezone, and the
+// clock, where null means "follow the device", and whether they have ever
+// opened the filters. One key, one JSON object, read on mount and written on
+// every change.
 import { z } from "zod";
 import { Filters } from "@/lib/filters";
 
@@ -15,7 +16,12 @@ const isTimeZone = (tz: string) => {
   }
 };
 
-const Preferences = z.object({ zone: z.string().refine(isTimeZone).nullable(), filters: Filters });
+const Preferences = z.object({
+  zone: z.string().refine(isTimeZone).nullable(),
+  clock: z.enum(["24h", "12h"]).nullable(),
+  filters: Filters,
+  noticedFilters: z.boolean(),
+});
 export type Preferences = z.infer<typeof Preferences>;
 
 export function readPreferences(storage: Storage): Preferences | null {

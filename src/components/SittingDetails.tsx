@@ -1,10 +1,14 @@
 // The detail panel body: everything an old student needs to attend the one
-// sitting they clicked. The calendar already shows every other time this host
-// offers, so the panel never names the schedule. Each fact is shown once: the
-// button names the platform, the time range shows the length, and the host's
-// city and country under the time say where the host's clock is. The join link
-// and the host page are the two buttons; the rest of the join details and the
-// contact are rows an old student reads when the link alone is not enough.
+// sitting they clicked, in three groups, in the order they are needed. First
+// when: the date, the time range with its length, where the host's clock is,
+// and the calendar file. Then how to join: the join link is the one filled
+// button, and the meeting id, password, and dial-in are rows for when the
+// link alone is not enough. Last the host: the host page, the contact, and
+// the listing's own text folded away. The calendar already shows every other
+// time this host offers, so the panel never names the schedule, and each fact
+// is shown once: the button names the platform, the city and country under
+// the time say where the host's clock is, and a long name is cut to one line
+// with the full name on hover.
 import * as React from "react";
 import {
   CalendarPlusIcon,
@@ -23,13 +27,13 @@ import type { Listing } from "@/schema/listing";
 import type { Sitting } from "@/lib/expand";
 import { downloadIcs, hostWeekday } from "@/lib/ics";
 import { joinFor, passwordNote } from "@/lib/join";
-import { countryName, fmtDate, fmtDuration, fmtRepeat, fmtTime, PLATFORM_LABEL, zoneAbbr } from "@/lib/labels";
+import { type Clock, countryName, fmtDate, fmtDuration, fmtRepeat, fmtTime, PLATFORM_LABEL, zoneAbbr } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ListingBadges } from "@/components/ListingBadges";
 
-/** A sitting this long or longer names its length next to the time range. */
-const LONG_SITTING_MINUTES = 180;
+/** The usual length of a sitting. Any other length is named next to the time range. */
+const USUAL_MINUTES = 60;
 
 function Copy({ text }: { text: string }) {
   const [done, setDone] = React.useState(false);
@@ -56,6 +60,16 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
       <div className="text-muted-foreground">{label}</div>
       <div className="flex min-w-0 items-center gap-1 break-words">{children}</div>
     </div>
+  );
+}
+
+/** A group of the panel, named in small capitals so the name reads as a heading and not as content. */
+function Group({ name, children }: { name: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">{name}</h3>
+      {children}
+    </section>
   );
 }
 
@@ -90,17 +104,20 @@ export function SittingDetails({
   sitting,
   listing,
   zone,
+  clock,
 }: {
   sitting: Sitting;
   listing: Listing;
   zone: string;
+  clock: Clock;
 }) {
   // A rule can carry its own room, so the join details follow the sitting.
   const join = joinFor(listing, sitting.rule);
   const password = join.password;
   const hostPage = listing.hostPageUrl ?? listing.host.url;
-  const hostClock = fmtTime(sitting.start, sitting.rule.timeZone);
-  const sameClock = hostClock === fmtTime(sitting.start, zone);
+  const hostClock = fmtTime(sitting.start, sitting.rule.timeZone, clock);
+  const sameClock = hostClock === fmtTime(sitting.start, zone, clock);
+  const minutes = sitting.rule.durationMinutes;
   // Where the host's clock is: the city and the country. The API's host names
   // are often internal ("Virtual-Audio-Only-Sublocation-..."), so they stay out.
   // Without a city the line only says what the badges say, so it shows only
@@ -108,19 +125,21 @@ export function SittingDetails({
   const where = [listing.host.city, countryName(listing.country)].filter(Boolean).join(", ");
 
   return (
-    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+    <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-5">
       <header className="space-y-2 pr-8">
-        <h2 className="text-lg leading-snug font-semibold">{listing.name}</h2>
+        <h2 className="truncate text-lg leading-snug font-semibold" title={listing.name}>
+          {listing.name}
+        </h2>
         <ListingBadges listing={listing} />
       </header>
 
       <section className="rounded-lg border bg-card p-4">
         <div className="text-sm text-muted-foreground">{fmtDate(sitting.start, zone)}</div>
         <div className="text-2xl font-semibold tabular-nums">
-          {fmtTime(sitting.start, zone)} – {fmtTime(sitting.end, zone)}
+          {fmtTime(sitting.start, zone, clock)} – {fmtTime(sitting.end, zone, clock)}
           <span className="ml-2 text-sm font-normal text-muted-foreground">
             {zoneAbbr(sitting.start, zone)}
-            {sitting.rule.durationMinutes >= LONG_SITTING_MINUTES && ` · ${fmtDuration(sitting.rule.durationMinutes)}`}
+            {minutes !== USUAL_MINUTES && ` · ${fmtDuration(minutes)}`}
           </span>
         </div>
         {(listing.host.city || !sameClock) && (
@@ -142,83 +161,80 @@ export function SittingDetails({
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="grid gap-2">
-          {join.url && (
-            <Button asChild className="w-full">
-              <a href={join.url} target="_blank" rel="noopener">
-                <VideoIcon /> Open in {PLATFORM_LABEL[listing.platform]} <ExternalLinkIcon />
-              </a>
-            </Button>
-          )}
-          {hostPage && (
-            <Button asChild variant="outline" className="w-full">
-              <a href={hostPage} target="_blank" rel="noopener">
-                <GlobeIcon /> Host page <ExternalLinkIcon />
-              </a>
-            </Button>
-          )}
-        </div>
-        {!join.url && !join.dialIn && (
-          <p className="text-sm text-muted-foreground">No direct link in the listing. Use the host page.</p>
+      <Group name="Join">
+        {join.url ? (
+          <Button asChild className="w-full">
+            <a href={join.url} target="_blank" rel="noopener">
+              <VideoIcon /> Open in {PLATFORM_LABEL[listing.platform]} <ExternalLinkIcon />
+            </a>
+          </Button>
+        ) : (
+          !join.dialIn && <p className="text-sm text-muted-foreground">No direct link in the listing. Use the host page.</p>
         )}
-        <div className="space-y-2">
-          {join.meetingId && (
-            <Row label="Meeting id">
-              <span className="font-mono">{join.meetingId}</span> <Copy text={join.meetingId} />
-            </Row>
-          )}
-          {password.kind !== "none" && (
-            <Row label="Password">
-              {password.kind === "given" ? (
-                <>
-                  <span className="font-mono">{password.value}</span> <Copy text={password.value} />
-                </>
-              ) : (
-                <span>{passwordNote(password)}</span>
-              )}
-            </Row>
-          )}
-          {join.dialIn && (
-            <Row label="Dial in">
-              <div>
-                <ul className="space-y-0.5">
-                  {join.dialIn.numbers.map((number) => (
-                    <li key={number} className="flex items-center gap-1 font-mono text-xs">
-                      <PhoneIcon className="size-3" /> {number}
-                    </li>
-                  ))}
-                </ul>
-                {join.dialIn.accessCode && (
-                  <div className="mt-1 text-xs">
-                    Access code: <span className="font-mono">{join.dialIn.accessCode}</span>
-                  </div>
+        {(join.meetingId || password.kind !== "none" || join.dialIn) && (
+          <div className="space-y-2">
+            {join.meetingId && (
+              <Row label="Meeting id">
+                <span className="font-mono">{join.meetingId}</span> <Copy text={join.meetingId} />
+              </Row>
+            )}
+            {password.kind !== "none" && (
+              <Row label="Password">
+                {password.kind === "given" ? (
+                  <>
+                    <span className="font-mono">{password.value}</span> <Copy text={password.value} />
+                  </>
+                ) : (
+                  <span>{passwordNote(password)}</span>
                 )}
-              </div>
-            </Row>
-          )}
-          {listing.host.email && (
-            <Row label="Contact">
-              <a className="inline-flex min-w-0 items-center gap-1 underline" href={`mailto:${listing.host.email}`}>
-                <MailIcon className="size-3 shrink-0" /> <span className="truncate">{listing.host.email}</span>
-              </a>
-            </Row>
-          )}
-        </div>
-      </section>
+              </Row>
+            )}
+            {join.dialIn && (
+              <Row label="Dial in">
+                <div>
+                  <ul className="space-y-0.5">
+                    {join.dialIn.numbers.map((number) => (
+                      <li key={number} className="flex items-center gap-1 font-mono text-xs">
+                        <PhoneIcon className="size-3" /> {number}
+                      </li>
+                    ))}
+                  </ul>
+                  {join.dialIn.accessCode && (
+                    <div className="mt-1 text-xs">
+                      Access code: <span className="font-mono">{join.dialIn.accessCode}</span>
+                    </div>
+                  )}
+                </div>
+              </Row>
+            )}
+          </div>
+        )}
+      </Group>
 
-      <details className="rounded-md border">
-        <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">Listing details</summary>
-        {/* Host HTML holds long links, tables, and images, so everything is made to fit the width. */}
-        <div
-          className="overflow-hidden border-t px-3 py-2 text-sm [overflow-wrap:anywhere] [&_a]:underline [&_img]:h-auto [&_img]:max-w-full [&_p]:my-1 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
-          dangerouslySetInnerHTML={{ __html: listing.description }}
-        />
-      </details>
-
-      <footer className="text-xs text-muted-foreground">
-        <p>Times come from dhamma.org and the host page. Check the host page before you join.</p>
-      </footer>
+      <Group name="Host">
+        {hostPage && (
+          <Button asChild variant="outline" className="w-full">
+            <a href={hostPage} target="_blank" rel="noopener">
+              <GlobeIcon /> Host page <ExternalLinkIcon />
+            </a>
+          </Button>
+        )}
+        {listing.host.email && (
+          <Row label="Contact">
+            <a className="inline-flex min-w-0 items-center gap-1 underline" href={`mailto:${listing.host.email}`}>
+              <MailIcon className="size-3 shrink-0" /> <span className="truncate">{listing.host.email}</span>
+            </a>
+          </Row>
+        )}
+        <details className="rounded-md border">
+          <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">Host page details</summary>
+          {/* Host HTML holds long links, tables, and images, so everything is made to fit the width. */}
+          <div
+            className="overflow-hidden border-t px-3 py-2 text-sm [overflow-wrap:anywhere] [&_a]:underline [&_img]:h-auto [&_img]:max-w-full [&_p]:my-1 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
+            dangerouslySetInnerHTML={{ __html: listing.description }}
+          />
+        </details>
+      </Group>
     </div>
   );
 }

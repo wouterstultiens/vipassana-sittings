@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Listing, ScheduleRule } from "@/schema/listing";
-import { expandSittings, localDayStart } from "@/lib/expand";
+import { dayOfWeek, expandSittings, localDayStart } from "@/lib/expand";
 
 const rule = (over: Partial<ScheduleRule> = {}): ScheduleRule => ({
   weekdays: ["mon"],
@@ -108,3 +108,12 @@ describe("daylight saving in the old student's zone", () => {
   });
 });
 
+
+describe("dayOfWeek", () => {
+  it("counts from Monday, in the old student's zone", () => {
+    // Sunday 6 September 2026, 23:00 UTC: still Sunday in Honolulu, already Monday in Amsterdam.
+    const at = new Date(Date.UTC(2026, 8, 6, 23));
+    expect(dayOfWeek(at, "Pacific/Honolulu")).toBe(6);
+    expect(dayOfWeek(at, "Europe/Amsterdam")).toBe(0);
+  });
+});

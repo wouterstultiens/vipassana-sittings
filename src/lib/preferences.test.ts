@@ -17,15 +17,15 @@ const memory = (): Storage => {
 describe("preferences", () => {
   it("reads back what it wrote", () => {
     const storage = memory();
-    const prefs = { zone: "Asia/Kolkata", filters: { ...EMPTY_FILTERS, languages: ["hi"], teacherLed: true } };
+    const prefs = { zone: "Asia/Kolkata", clock: "12h" as const, filters: { ...EMPTY_FILTERS, languages: ["hi"], teacherLed: true }, noticedFilters: true };
     writePreferences(storage, prefs);
     expect(readPreferences(storage)).toEqual(prefs);
   });
 
-  it("keeps a null zone, which means follow the device", () => {
+  it("keeps a null zone and clock, which means follow the device", () => {
     const storage = memory();
-    writePreferences(storage, { zone: null, filters: EMPTY_FILTERS });
-    expect(readPreferences(storage)).toEqual({ zone: null, filters: EMPTY_FILTERS });
+    writePreferences(storage, { zone: null, clock: null, filters: EMPTY_FILTERS, noticedFilters: false });
+    expect(readPreferences(storage)).toEqual({ zone: null, clock: null, filters: EMPTY_FILTERS, noticedFilters: false });
   });
 
   it("gives nothing when the store is empty or broken", () => {
@@ -33,9 +33,9 @@ describe("preferences", () => {
     expect(readPreferences(storage)).toBeNull();
     storage.setItem("vipassana-sittings", "{not json");
     expect(readPreferences(storage)).toBeNull();
-    storage.setItem("vipassana-sittings", JSON.stringify({ zone: "Mars/Olympus", filters: EMPTY_FILTERS }));
+    storage.setItem("vipassana-sittings", JSON.stringify({ zone: "Mars/Olympus", clock: null, filters: EMPTY_FILTERS, noticedFilters: false }));
     expect(readPreferences(storage)).toBeNull();
-    storage.setItem("vipassana-sittings", JSON.stringify({ zone: "UTC", filters: { durations: ["week"] } }));
+    storage.setItem("vipassana-sittings", JSON.stringify({ zone: "UTC", clock: null, filters: { durations: ["week"] } }));
     expect(readPreferences(storage)).toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 // each list is a popover menu in the toolbar; on a phone the same lists open
 // as checkbox groups in a bottom sheet. The calendar answers "which day" and
 // "which hour" on its own, so the filters ask only what a row cannot show.
-// Until the old student touches a filter, a pulsing ring points at them.
+// Until the old student has ever opened a filter, a pulsing ring points at them.
 import * as React from "react";
 import { ChevronDownIcon, FilterXIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
@@ -102,18 +102,19 @@ export function FilterToolbar({
   filters,
   setFilters,
   nudge,
+  onNotice,
 }: {
   listings: Listing[];
   filters: Filters;
   setFilters: SetFilters;
-  nudge: boolean; // ring the filters until one is chosen or a menu is opened
+  nudge: boolean; // ring the filters
+  onNotice: () => void; // a menu was opened, so the ring has done its work
 }) {
   const choices = useChoices(listings);
-  const [noticed, setNoticed] = React.useState(false);
   return (
-    <Nudge on={nudge && !noticed} className="flex flex-wrap items-center gap-2">
+    <Nudge on={nudge} className="flex flex-wrap items-center gap-2">
       {choices.map((choice) => (
-        <Popover key={choice.key} onOpenChange={() => setNoticed(true)}>
+        <Popover key={choice.key} onOpenChange={onNotice}>
           <PopoverTrigger asChild>
             <Button variant={filters[choice.key].length ? "default" : "outline"} size="sm">
               {choice.label}
