@@ -2,11 +2,12 @@
 // seven side by side on a laptop and one per screen on a phone, under a
 // toolbar that sticks to the top. It opens on today. Filters, the timezone,
 // and the clock come back from local storage on the next visit. A row opens
-// the sitting sheet.
+// the sitting sheet. A day or week with nothing on it names the next sitting
+// ahead that passes the filters and turns to it on a tap.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Listing } from "@/schema/listing";
-import { dayOfWeek, expandSittings, localDayStart, WEEKS_AHEAD } from "@/lib/expand";
+import { dayOfWeek, expandSittings, localDayStart, type Sitting, WEEKS_AHEAD } from "@/lib/expand";
 import { activeCount, EMPTY_FILTERS, sittingMatches, type SetFilters } from "@/lib/filters";
 import { type Clock, deviceClock, fmtDate, fmtDayMonth, fmtDayMonthYear, hourIn } from "@/lib/labels";
 import { readPreferences, writePreferences, type Preferences } from "@/lib/preferences";
@@ -19,6 +20,7 @@ import { DayStrip } from "@/components/DayStrip";
 import { FilterSheet } from "@/components/FilterSheet";
 import { FilterToolbar } from "@/components/FilterToolbar";
 import { HourGrid, hourInView, jumpToHour, type Day } from "@/components/HourGrid";
+import { NoSittings } from "@/components/NoSittings";
 import { SittingSheet } from "@/components/SittingSheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { oldStudentZone, ZoneSelect } from "@/components/ZoneSelect";
@@ -42,6 +44,7 @@ function Pane({
   nowHour,
   hour,
   onOpen,
+  empty,
 }: {
   day: Day;
   zone: string;
@@ -50,6 +53,7 @@ function Pane({
   nowHour: number | null;
   hour: React.RefObject<number>;
   onOpen: (slot: Slot) => void;
+  empty: React.ReactNode; // what the pane shows when the day holds no slot
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
@@ -57,7 +61,11 @@ function Pane({
   }, []);
   return (
     <div ref={ref} className={PANE}>
-      <HourGrid days={[day]} zone={zone} clock={clock} now={now} nowHour={nowHour} headers={false} onOpen={onOpen} />
+      {day.slots.length ? (
+        <HourGrid days={[day]} zone={zone} clock={clock} now={now} nowHour={nowHour} headers={false} onOpen={onOpen} />
+      ) : (
+        empty
+      )}
     </div>
   );
 }
@@ -82,7 +90,9 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const zone = prefs ? (prefs.zone ?? oldStudentZone()) : "UTC";
   const clock = prefs ? (prefs.clock ?? deviceClock()) : "24h";
   const filters = prefs?.filters ?? EMPTY_FILTERS;
+  const filtered = activeCount(filters) > 0;
   const setFilters: SetFilters = (update) => setPrefs((p) => p && { ...p, filters: update(p.filters) });
+  const clearFilters = () => setFilters(() => EMPTY_FILTERS);
   const setZone = (z: string | null) => setPrefs((p) => p && { ...p, zone: z });
   const setClock = (c: Clock) => setPrefs((p) => p && { ...p, clock: c });
   // The ring around the filters, until the old student has ever opened them, on any visit. Not before the store is read, so it never flashes.
@@ -124,6 +134,18 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     );
   }, [all, filters, days, first, last, todayIndex]);
 
+  // The way on from a day or week with nothing on it: the sittings from the
+  // shown days to the end of the calendar that pass the filters, in start
+  // order, so the first one after an empty day or week can be named. Only
+  // worked out while a shown day is empty.
+  const anyEmpty = [...dayLists.values()].some((d) => d.slots.length === 0);
+  const upcoming = React.useMemo(
+    () => (anyEmpty ? expandSittings(listings, days[first], days[DAYS], zone).filter((s) => sittingMatches(s, filters)) : []),
+    [anyEmpty, listings, days, first, zone, filters],
+  );
+  const nextAfter = (i: number) => upcoming.find((s) => s.start >= days[i + 1]) ?? null;
+  const dayIndexOf = (s: Sitting) => days.findLastIndex((d) => d <= s.start);
+
   // The phone's day panes sit in one row that snaps a pane per screen. Each
   // pane scrolls its own hours, so a drag peeks at the next day, and the
   // pane the drag would settle on is the day from the moment the drag passes
@@ -163,9 +185,11 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
 
   // Turning the week on a laptop keeps the hour at the top of the view, so the
   // old student compares the same hour across days and weeks, as on a calendar.
+  // An empty week has no hours to read, so the last hour read stands.
   const keptHour = React.useRef<number | null>(null);
-  const turnTo = (next: number) => {
-    keptHour.current = hourInView(document);
+  const turnTo = (next: number, at = hourInView(document) ?? hour.current) => {
+    hour.current = at;
+    keptHour.current = at;
     setWeeks(next);
   };
   React.useLayoutEffect(() => {
@@ -179,10 +203,10 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const phoneRef = React.useRef<HTMLDivElement>(null);
   const settled = React.useRef(true);
 
-  // Every other pane opens on the hour of the pane on screen.
+  // Every other pane opens on the hour of the pane on screen. An empty pane has no hours to read, so the last hour read stands.
   const alignPanes = () => {
     const all = panes();
-    hour.current = hourInView(all[day]);
+    hour.current = hourInView(all[day]) ?? hour.current;
     all.forEach((pane, i) => i !== day && jumpToHour(pane, hour.current));
   };
   const onDrag = () => {
@@ -205,10 +229,10 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     alignPanes();
     pager.scrollTo({ left: i * widthOf(pager), behavior: "smooth" });
   };
-  // A turn to another week goes straight there, on the same hour: the strip already moved.
+  // A turn to another week goes straight there, on the same hour: the strip already moved. So does a turn to a named sitting, on its hour.
   const jump = React.useRef<number | null>(null);
-  const jumpTo = (i: number) => {
-    hour.current = hourInView(panes()[day]);
+  const jumpTo = (i: number, at = hourInView(panes()[day]) ?? hour.current) => {
+    hour.current = at;
     jump.current = i;
     setDay(i);
   };
@@ -216,6 +240,7 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
     const pager = pagerRef.current;
     if (jump.current === null || !pager) return;
     pager.scrollTo({ left: jump.current * widthOf(pager) });
+    jumpToHour(panes()[jump.current], hour.current);
     jump.current = null;
   }, [day]);
   const onWeek = (w: number) => {
@@ -249,14 +274,26 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
       </div>
       <AppliedFilters filters={filters} setFilters={setFilters} />
       <div className="px-3 pb-6">
-        <HourGrid
-          days={starts.slice(first, last + 1).map((_, n) => dayLists.get(first + n)!)}
-          zone={zone}
-          clock={clock}
-          now={now}
-          nowHour={weeks === 0 ? nowHour : null}
-          onOpen={setOpen}
-        />
+        {[...dayLists.values()].every((d) => d.slots.length === 0) ? (
+          <NoSittings
+            span="week"
+            filtered={filtered}
+            next={nextAfter(last)}
+            zone={zone}
+            clock={clock}
+            onNext={(s) => turnTo(Math.floor(dayIndexOf(s) / 7), hourIn(s.start, zone))}
+            onClear={clearFilters}
+          />
+        ) : (
+          <HourGrid
+            days={starts.slice(first, last + 1).map((_, n) => dayLists.get(first + n)!)}
+            zone={zone}
+            clock={clock}
+            now={now}
+            nowHour={weeks === 0 ? nowHour : null}
+            onOpen={setOpen}
+          />
+        )}
       </div>
     </>
   );
@@ -290,7 +327,27 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
         {starts.map((_, i) => {
           const list = dayLists.get(i);
           return list ? (
-            <Pane key={i} day={list} zone={zone} clock={clock} now={now} nowHour={list.today ? nowHour : null} hour={hour} onOpen={setOpen} />
+            <Pane
+              key={i}
+              day={list}
+              zone={zone}
+              clock={clock}
+              now={now}
+              nowHour={list.today ? nowHour : null}
+              hour={hour}
+              onOpen={setOpen}
+              empty={
+                <NoSittings
+                  span="day"
+                  filtered={filtered}
+                  next={nextAfter(i)}
+                  zone={zone}
+                  clock={clock}
+                  onNext={(s) => jumpTo(dayIndexOf(s), hourIn(s.start, zone))}
+                  onClear={clearFilters}
+                />
+              }
+            />
           ) : (
             <div key={i} className={PANE} />
           );

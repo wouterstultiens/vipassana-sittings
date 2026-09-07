@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtHour, fmtLength, fmtRepeat, fmtTime, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
+import { fmtHour, fmtLength, fmtRepeat, fmtSite, fmtTime, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
 import { aRule } from "@/test/fixtures";
 
 describe("languageFlag", () => {
@@ -57,5 +57,13 @@ describe("fmtTime and fmtHour", () => {
     expect(fmtHour(0, "12h")).toBe("12 AM");
     expect(fmtHour(12, "12h")).toBe("12 PM");
     expect(fmtHour(20, "12h")).toBe("8 PM");
+  });
+});
+
+describe("fmtSite", () => {
+  it("names a link by its host, without www", () => {
+    expect(fmtSite("https://www.dhamma.org/en/os/online-sittings?x=1")).toBe("dhamma.org");
+    expect(fmtSite("https://nordic.dhamma.org/")).toBe("nordic.dhamma.org");
+    expect(fmtSite("not a url")).toBe("not a url");
   });
 });

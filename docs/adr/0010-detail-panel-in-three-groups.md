@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: 0012
 ---
 
 # The detail panel in three groups: when, join, host
