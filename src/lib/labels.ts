@@ -20,8 +20,16 @@ export const countryName = (code: string) => {
   }
 };
 
+const titles = new Map<string, string>();
+
 /** What a language tag says on hover: the name in the language itself, then in English, "Español (Spanish)". */
 export function languageTitle(code: string): string {
+  let title = titles.get(code);
+  if (title === undefined) titles.set(code, (title = languageTitleOf(code)));
+  return title;
+}
+
+function languageTitleOf(code: string): string {
   let native = code;
   try {
     native = new Intl.DisplayNames([code], { type: "language" }).of(code) ?? code;
@@ -102,8 +110,17 @@ export function fmtDuration(min: number): string {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
-const format = (opts: Intl.DateTimeFormatOptions) => (d: Date, zone: string) =>
-  new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone }).format(d);
+// Building an Intl.DateTimeFormat costs far more than formatting with it, and
+// the calendar formats hundreds of dates per render, so each formatter is
+// built once per zone.
+const format = (opts: Intl.DateTimeFormatOptions) => {
+  const byZone = new Map<string, Intl.DateTimeFormat>();
+  return (d: Date, zone: string) => {
+    let f = byZone.get(zone);
+    if (!f) byZone.set(zone, (f = new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone })));
+    return f.format(d);
+  };
+};
 
 export const fmtTime = format({ hour: "2-digit", minute: "2-digit" });
 /** The hour of the day, 0 to 23, in the old student's zone. */

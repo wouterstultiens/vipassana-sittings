@@ -47,19 +47,29 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const [weeks, setWeeks] = React.useState(0);
   const [open, setOpen] = React.useState<Slot | null>(null);
 
+  // The week's data only changes with the week, the zone, or the filters. It
+  // is kept stable across the other renders (a row opening, the clock
+  // ticking), so the memoised rows below skip their work.
   const from = localDayStart(now, zone, 7 * weeks);
-  const to = localDayStart(from, zone, 7);
-  const days = Array.from({ length: 7 }, (_, i) => localDayStart(from, zone, i));
+  const fromTime = from.getTime();
+  const [days, to] = React.useMemo(() => {
+    const starts = Array.from({ length: 8 }, (_, i) => localDayStart(from, zone, i));
+    return [starts.slice(0, 7), starts[7]] as const;
+  }, [fromTime, zone]);
   const dayEnd = (i: number) => days[i + 1] ?? to;
 
-  const all = React.useMemo(() => expandSittings(listings, from, to, zone), [listings, from.getTime(), to.getTime(), zone]);
-  const shown = all.filter((s) => sittingMatches(s, filters));
+  const all = React.useMemo(() => expandSittings(listings, from, to, zone), [listings, fromTime, to, zone]);
+  const shown = React.useMemo(() => all.filter((s) => sittingMatches(s, filters)), [all, filters]);
   const todayIdx = days.findIndex((d, i) => now >= d && now < dayEnd(i));
-  const dayLists: Day[] = days.map((d, i) => ({
-    day: d,
-    slots: slotsOf(shown.filter((s) => s.start >= d && s.start < dayEnd(i))),
-    today: i === todayIdx,
-  }));
+  const dayLists: Day[] = React.useMemo(
+    () =>
+      days.map((d, i) => ({
+        day: d,
+        slots: slotsOf(shown.filter((s) => s.start >= d && s.start < dayEnd(i))),
+        today: i === todayIdx,
+      })),
+    [days, to, shown, todayIdx],
+  );
   const nowHour = todayIdx === -1 ? null : hourIn(now, zone);
   const phone = usePhone();
 

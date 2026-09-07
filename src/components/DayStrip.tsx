@@ -46,7 +46,7 @@ export function DayStrip({
           onClick={() => onPick(i)}
           aria-current={i === active ? "date" : undefined}
           className={cn(
-            "flex flex-1 items-baseline justify-center gap-1 rounded-md py-1 text-xs whitespace-nowrap transition-colors",
+            "flex flex-1 items-baseline justify-center gap-1 rounded-md py-1 text-xs whitespace-nowrap",
             i === active ? "bg-primary text-primary-foreground" : today ? "text-primary hover:bg-accent" : "text-muted-foreground hover:bg-accent",
           )}
         >
