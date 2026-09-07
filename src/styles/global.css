@@ -81,6 +81,16 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* A day strip cell's ink blends toward the marker's ink as the marker
+   slides over it: --day is the marker's position and --i the cell's, both in
+   cells, so a cell half under the marker is half way between the two. */
+@utility strip-cell {
+  --under: clamp(0, calc(1 - abs(var(--day, 0) - var(--i))), 1);
+}
+@utility strip-ink-* {
+  color: color-mix(in oklch, var(--color-primary-foreground) calc(var(--under) * 100%), --value(--color-*));
+}
+
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; }
