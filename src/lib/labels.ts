@@ -132,17 +132,31 @@ export function fmtDuration(min: number): string {
 
 // Building an Intl.DateTimeFormat costs far more than formatting with it, and
 // the calendar formats hundreds of dates per render, so each formatter is
-// built once per zone.
-const format = (opts: Intl.DateTimeFormatOptions) => {
+// built once per zone and clock.
+const format = (opts: Intl.DateTimeFormatOptions, locale = "en-GB") => {
   const byZone = new Map<string, Intl.DateTimeFormat>();
   return (d: Date, zone: string) => {
     let f = byZone.get(zone);
-    if (!f) byZone.set(zone, (f = new Intl.DateTimeFormat("en-GB", { ...opts, timeZone: zone })));
+    if (!f) byZone.set(zone, (f = new Intl.DateTimeFormat(locale, { ...opts, timeZone: zone })));
     return f.format(d);
   };
 };
 
-export const fmtTime = format({ hour: "2-digit", minute: "2-digit" });
+/** How a time of day is written: "20:00", or "8:00 PM". */
+export type Clock = "24h" | "12h";
+
+/** The clock the old student's device writes its times in. */
+export const deviceClock = (): Clock => (new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hour12 ? "12h" : "24h");
+
+const TIME: Record<Clock, (d: Date, zone: string) => string> = {
+  "24h": format({ hour: "2-digit", minute: "2-digit" }),
+  "12h": format({ hour: "numeric", minute: "2-digit" }, "en-US"),
+};
+export const fmtTime = (d: Date, zone: string, clock: Clock) => TIME[clock](d, zone);
+
+/** An hour on the hour axis: "20:00", or "8 PM". */
+export const fmtHour = (h: number, clock: Clock) =>
+  clock === "24h" ? `${String(h).padStart(2, "0")}:00` : `${((h + 11) % 12) + 1} ${h < 12 ? "AM" : "PM"}`;
 /** The hour of the day, 0 to 23, in the old student's zone. */
 export const hourIn = (d: Date, zone: string) => new TZDate(d, zone).getHours();
 export const fmtWeekday = format({ weekday: "short" });

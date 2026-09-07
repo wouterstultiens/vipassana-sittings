@@ -1,7 +1,7 @@
 // Folds the sittings of one day into slots, the rows of a day list, works out
 // which language tags a row carries, and how many of them fit.
 import type { Sitting } from "@/lib/expand";
-import { languageFlag, type LanguageFlag } from "@/lib/labels";
+import { type Clock, languageFlag, type LanguageFlag } from "@/lib/labels";
 
 /** The sittings of one day that share a start instant and a length. One row on the day list. */
 export type Slot = {
@@ -66,15 +66,17 @@ const MORE_WIDTH = 20; // "+N"
 const LENGTH_WIDTH = 34; // "2½ h"
 const FIXED_WIDTH = 78; // padding, gaps, the time, and a one-digit count
 const DIGIT_WIDTH = 8;
+const MERIDIEM_WIDTH = 18; // what " PM" adds to the time on a 12-hour clock
 
 /**
  * How many language tags a row of the given width shows: all of them when
  * they fit, else as many as fit next to a "+N". Before the row is measured
  * (width 0) it shows up to three.
  */
-export function tagsThatFit(count: number, rowWidth: number, digits: number, hasLength: boolean): number {
+export function tagsThatFit(count: number, rowWidth: number, digits: number, hasLength: boolean, clock: Clock): number {
   if (rowWidth <= 0) return Math.min(count, 3);
-  const room = rowWidth - FIXED_WIDTH - DIGIT_WIDTH * (digits - 1) - (hasLength ? LENGTH_WIDTH : 0) + 4; // the last tag has no gap
+  const room =
+    rowWidth - FIXED_WIDTH - DIGIT_WIDTH * (digits - 1) - (hasLength ? LENGTH_WIDTH : 0) - (clock === "12h" ? MERIDIEM_WIDTH : 0) + 4; // the last tag has no gap
   if (count * TAG_WIDTH <= room) return count;
   return Math.max(1, Math.floor((room - MORE_WIDTH) / TAG_WIDTH));
 }

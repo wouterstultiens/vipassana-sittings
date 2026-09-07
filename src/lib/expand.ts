@@ -15,11 +15,14 @@ export type Sitting = {
   crossesMidnight: boolean; // end falls on the next local day
 };
 
-/** How far ahead of today the old student can walk, in weeks. */
+/** How far past this week the old student can walk, in weeks. */
 export const WEEKS_AHEAD = 8;
 
 /** Weekdays in the order of Date.getDay(). */
 export const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+/** The place of a day in its week in the old student's zone: Monday 0 to Sunday 6. */
+export const dayOfWeek = (d: Date, zone: string) => (new TZDate(d.getTime(), zone).getDay() + 6) % 7;
 
 function matchesWeekOfMonth(rule: ScheduleRule, d: TZDate): boolean {
   if (!rule.weeksOfMonth) return true;

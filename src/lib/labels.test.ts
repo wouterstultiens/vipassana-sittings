@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtLength, fmtRepeat, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
+import { fmtHour, fmtLength, fmtRepeat, fmtTime, languageFlag, languageTitle, sortLanguages } from "@/lib/labels";
 import { aRule } from "@/test/fixtures";
 
 describe("languageFlag", () => {
@@ -40,5 +40,22 @@ describe("fmtRepeat", () => {
     expect(fmtRepeat(aRule({ weeksOfMonth: [1] }), "mon")).toBe("Every 1st Monday");
     expect(fmtRepeat(aRule({ weeksOfMonth: [1, 3] }), "mon")).toBe("Every 1st and 3rd Monday");
     expect(fmtRepeat(aRule({ weeksOfMonth: [2, 4, -1] }), "sun")).toBe("Every 2nd, 4th and last Sunday");
+  });
+});
+
+describe("fmtTime and fmtHour", () => {
+  const at = new Date(Date.UTC(2026, 8, 7, 18, 30)); // 20:30 in Amsterdam
+
+  it("writes the time on a 24-hour or a 12-hour clock", () => {
+    expect(fmtTime(at, "Europe/Amsterdam", "24h")).toBe("20:30");
+    expect(fmtTime(at, "Europe/Amsterdam", "12h")).toBe("8:30 PM");
+    expect(fmtTime(at, "Asia/Kolkata", "12h")).toBe("12:00 AM");
+  });
+
+  it("writes the hours of the axis", () => {
+    expect(fmtHour(0, "24h")).toBe("00:00");
+    expect(fmtHour(0, "12h")).toBe("12 AM");
+    expect(fmtHour(12, "12h")).toBe("12 PM");
+    expect(fmtHour(20, "12h")).toBe("8 PM");
   });
 });

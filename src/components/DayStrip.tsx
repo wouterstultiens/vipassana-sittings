@@ -1,11 +1,12 @@
-// The phone's way between days: every day the calendar can show, seven per
-// screen, in a strip at the bottom of the screen that snaps a week per
-// screen, with the week arrows at the ends. A tap turns to that day. The
-// strip follows the day on screen into its week, and a week the strip is
-// brought to, by an arrow or a swipe, turns to the same weekday of that week.
-// The marker under the day on screen slides with a drag of the day panes:
-// --day, set by the calendar, is the day as a fraction, and each cell's ink
-// blends toward the marker's as the marker slides over it.
+// The phone's way between days: every day the calendar can show, Monday to
+// Sunday, seven per screen, in a strip at the bottom of the screen that snaps
+// a week per screen, with the week arrows at the ends. The days of this week
+// that are gone are dimmed. A tap turns to that day. The strip follows the
+// day on screen into its week, and a week the strip is brought to, by an
+// arrow or a swipe, turns to the same weekday of that week. The marker under
+// the day on screen slides with a drag of the day panes: --day, set by the
+// calendar, is the day as a fraction, and each cell's ink blends toward the
+// marker's as the marker slides over it.
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { fmtDayOfMonth, fmtWeekday } from "@/lib/labels";
@@ -18,12 +19,14 @@ const widthOf = (el: HTMLElement) => el.getBoundingClientRect().width;
 export function DayStrip({
   days,
   zone,
+  today,
   active,
   onPick,
   onWeek,
 }: {
-  days: Date[]; // the start of every day the calendar can show, today first, a whole number of weeks
+  days: Date[]; // the start of every day the calendar can show, from a Monday, a whole number of weeks
   zone: string;
+  today: number; // today, as an index into days
   active: number; // the day on screen, as an index into days
   onPick: (i: number) => void;
   onWeek: (week: number) => void; // the strip settled on a week
@@ -75,7 +78,7 @@ export function DayStrip({
               <div key={weekDays[0].getTime()} className="grid w-full shrink-0 snap-start grid-cols-7">
                 {weekDays.map((day, d) => {
                   const i = w * 7 + d;
-                  const today = i === 0;
+                  const isToday = i === today;
                   return (
                     <button
                       key={day.getTime()}
@@ -86,10 +89,11 @@ export function DayStrip({
                       className={cn(
                         "strip-cell relative flex flex-col items-center rounded-md py-1 text-xs leading-tight whitespace-nowrap",
                         i !== active && "hover:bg-accent",
+                        i < today && "opacity-50",
                       )}
                     >
-                      <span className={today ? "strip-ink-primary" : "strip-ink-muted-foreground"}>{fmtWeekday(day, zone)}</span>
-                      <span className={cn("text-base font-semibold", today ? "strip-ink-primary" : "strip-ink-foreground")}>
+                      <span className={isToday ? "strip-ink-primary" : "strip-ink-muted-foreground"}>{fmtWeekday(day, zone)}</span>
+                      <span className={cn("text-base font-semibold", isToday ? "strip-ink-primary" : "strip-ink-foreground")}>
                         {fmtDayOfMonth(day, zone)}
                       </span>
                     </button>

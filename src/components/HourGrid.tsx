@@ -5,7 +5,7 @@
 // shows seven days in one grid that the page scrolls; the phone shows one
 // grid per day pane, each pane a scroller of its own.
 import * as React from "react";
-import { fmtDayOfMonth, fmtWeekday, hourIn } from "@/lib/labels";
+import { type Clock, fmtDayOfMonth, fmtHour, fmtWeekday, hourIn } from "@/lib/labels";
 import type { Slot } from "@/lib/slots";
 import { useSize } from "@/hooks/use-size";
 import { SlotRow, type SlotState } from "@/components/SlotRow";
@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 export type Day = { day: Date; slots: Slot[]; today: boolean };
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
-const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 const stateOf = (slot: Slot, now: Date): SlotState => (slot.end <= now ? "ended" : slot.start <= now ? "now" : "ahead");
 
@@ -53,6 +52,7 @@ const CELL_PADDING = 8;
 export function HourGrid({
   days,
   zone,
+  clock,
   now,
   nowHour,
   headers = true,
@@ -60,6 +60,7 @@ export function HourGrid({
 }: {
   days: Day[];
   zone: string;
+  clock: Clock;
   now: Date;
   nowHour: number | null; // the current hour when today is one of the days
   headers?: boolean; // the day headers on top of the columns, off on a phone
@@ -99,12 +100,12 @@ export function HourGrid({
               h === nowHour ? "font-semibold text-primary" : "text-muted-foreground",
             )}
           >
-            {hourLabel(h)}
+            {fmtHour(h, clock)}
           </div>
           {days.map(({ day, today }, i) => (
             <div key={day.getTime()} className={cn("flex min-h-5 flex-col gap-0.5 border-t px-1 py-0.5", today && "bg-today")}>
               {(byHour[i].get(h) ?? []).map((slot) => (
-                <SlotRow key={slot.key} slot={slot} zone={zone} state={stateOf(slot, now)} width={rowWidth} onOpen={onOpen} />
+                <SlotRow key={slot.key} slot={slot} zone={zone} clock={clock} state={stateOf(slot, now)} width={rowWidth} onOpen={onOpen} />
               ))}
             </div>
           ))}

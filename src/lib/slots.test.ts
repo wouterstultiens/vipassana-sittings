@@ -72,18 +72,24 @@ describe("languageTags", () => {
 
 describe("tagsThatFit", () => {
   it("shows every tag when the row is wide enough, as on a phone", () => {
-    expect(tagsThatFit(5, 318, 1, false)).toBe(5);
-    expect(tagsThatFit(3, 318, 2, true)).toBe(3);
+    expect(tagsThatFit(5, 318, 1, false, "24h")).toBe(5);
+    expect(tagsThatFit(3, 318, 2, true, "24h")).toBe(3);
   });
 
   it("keeps room for a +N when they do not all fit, as in a laptop column", () => {
-    expect(tagsThatFit(4, 181, 1, false)).toBe(4);
-    expect(tagsThatFit(5, 181, 1, false)).toBe(3);
-    expect(tagsThatFit(3, 181, 1, true)).toBe(2);
+    expect(tagsThatFit(4, 181, 1, false, "24h")).toBe(4);
+    expect(tagsThatFit(5, 181, 1, false, "24h")).toBe(3);
+    expect(tagsThatFit(3, 181, 1, true, "24h")).toBe(2);
   });
 
   it("shows up to three before the row is measured, and never fewer than one", () => {
-    expect(tagsThatFit(5, 0, 1, false)).toBe(3);
-    expect(tagsThatFit(3, 90, 2, true)).toBe(1);
+    expect(tagsThatFit(5, 0, 1, false, "24h")).toBe(3);
+    expect(tagsThatFit(3, 90, 2, true, "24h")).toBe(1);
+  });
+});
+
+describe("tagsThatFit on a 12-hour clock", () => {
+  it("leaves room for the AM or PM", () => {
+    expect(tagsThatFit(4, 181, 1, false, "12h")).toBe(2);
   });
 });

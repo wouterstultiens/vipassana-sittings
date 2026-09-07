@@ -6,7 +6,7 @@ import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { Sitting } from "@/lib/expand";
 import type { Slot } from "@/lib/slots";
-import { fmtDate, fmtDuration, fmtTime } from "@/lib/labels";
+import { type Clock, fmtDate, fmtDuration, fmtTime } from "@/lib/labels";
 import { usePhone } from "@/hooks/use-phone";
 import { ListingBadges } from "@/components/ListingBadges";
 import { SittingDetails } from "@/components/SittingDetails";
@@ -21,17 +21,17 @@ const BackRow = ({ onBack }: { onBack: () => void }) => (
   </div>
 );
 
-function SlotContent({ slot, zone, onClose }: { slot: Slot; zone: string; onClose: () => void }) {
+function SlotContent({ slot, zone, clock, onClose }: { slot: Slot; zone: string; clock: Clock; onClose: () => void }) {
   const several = slot.sittings.length > 1;
   const [picked, setPicked] = React.useState<Sitting | null>(several ? null : slot.sittings[0]);
-  const time = fmtTime(slot.start, zone);
+  const time = fmtTime(slot.start, zone, clock);
 
   if (picked) {
     return (
       <>
         <BackRow onBack={several ? () => setPicked(null) : onClose} />
         <SheetTitle className="sr-only">{picked.listing.name}</SheetTitle>
-        <SittingDetails listing={picked.listing} sitting={picked} zone={zone} />
+        <SittingDetails listing={picked.listing} sitting={picked} zone={zone} clock={clock} />
       </>
     );
   }
@@ -42,7 +42,7 @@ function SlotContent({ slot, zone, onClose }: { slot: Slot; zone: string; onClos
       <header className="border-b p-5">
         <div className="text-sm text-muted-foreground">{fmtDate(slot.start, zone)}</div>
         <SheetTitle className="text-2xl font-semibold tabular-nums">
-          {time} – {fmtTime(slot.end, zone)}
+          {time} – {fmtTime(slot.end, zone, clock)}
           <span className="ml-2 text-sm font-normal text-muted-foreground">{fmtDuration(slot.durationMinutes)}</span>
         </SheetTitle>
       </header>
@@ -55,7 +55,9 @@ function SlotContent({ slot, zone, onClose }: { slot: Slot; zone: string; onClos
               onClick={() => setPicked(s)}
             >
               <div className="min-w-0 flex-1">
-                <div className="font-medium">{s.listing.name}</div>
+                <div className="truncate font-medium" title={s.listing.name}>
+                  {s.listing.name}
+                </div>
                 <div className="mt-1">
                   <ListingBadges listing={s.listing} size="xs" />
                 </div>
@@ -69,14 +71,14 @@ function SlotContent({ slot, zone, onClose }: { slot: Slot; zone: string; onClos
   );
 }
 
-export function SittingSheet({ slot, onClose, zone }: { slot: Slot | null; onClose: () => void; zone: string }) {
+export function SittingSheet({ slot, onClose, zone, clock }: { slot: Slot | null; onClose: () => void; zone: string; clock: Clock }) {
   const phone = usePhone();
   return (
     <Sheet open={slot !== null} onOpenChange={(open) => !open && onClose()}>
       {slot && (
         <SheetContent side={phone ? "bottom" : "right"} className={phone ? "h-dvh gap-0" : "gap-0 sm:max-w-lg"}>
           {/* Keyed on the slot, so a new row starts from its list again. */}
-          <SlotContent key={slot.key} slot={slot} zone={zone} onClose={onClose} />
+          <SlotContent key={slot.key} slot={slot} zone={zone} clock={clock} onClose={onClose} />
         </SheetContent>
       )}
     </Sheet>
