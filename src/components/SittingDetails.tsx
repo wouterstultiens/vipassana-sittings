@@ -129,8 +129,9 @@ export function SittingDetails({
   // when the host's clock differs.
   const where = [listing.host.city, countryName(listing.country)].filter(Boolean).join(", ");
 
+  // The body scrolls up and down on its own; a drag to the right is the page's. Its text can be selected, as the page's cannot.
   return (
-    <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-5">
+    <div className="min-h-0 flex-1 touch-pan-y space-y-6 overflow-y-auto p-5 select-text">
       <header className="space-y-2 pr-8">
         <h2 className="truncate text-lg leading-snug font-semibold" title={listing.name}>
           {listing.name}
