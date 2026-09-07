@@ -8,6 +8,7 @@ import type { Listing } from "@/schema/listing";
 import { activeCount, DURATION_LABEL, EMPTY_FILTERS, toggle, type Filters, type SetFilters } from "@/lib/filters";
 import { languageFlag, languageName, MEDIUM_LABEL, sortLanguages, type LanguageFlag } from "@/lib/labels";
 import { FlagIcon } from "@/components/FlagIcon";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -17,12 +18,9 @@ type Choice = { key: ChoiceKey; label: string; options: { value: string; label: 
 
 const keysOf = <T extends string>(record: Record<T, string>) => Object.keys(record) as T[];
 
-/** The language of the browser, first in the language list when the data has it. */
-const browserLanguage = () => (typeof navigator === "undefined" ? "en" : navigator.language.split("-")[0]);
-
 function useChoices(listings: Listing[]) {
   return React.useMemo(() => {
-    const languages = sortLanguages([...new Set(listings.flatMap((l) => l.languages))], browserLanguage());
+    const languages = sortLanguages([...new Set(listings.flatMap((l) => l.languages))]);
     const durations: Choice = {
       key: "durations",
       label: "Length",
@@ -38,7 +36,7 @@ function useChoices(listings: Listing[]) {
       label: "Medium",
       options: keysOf(MEDIUM_LABEL).map((k) => ({ value: k, label: MEDIUM_LABEL[k] })),
     };
-    return [durations, language, medium];
+    return [language, durations, medium];
   }, [listings]);
 }
 
@@ -49,15 +47,18 @@ const onToggle = (setFilters: SetFilters, key: ChoiceKey) => (value: string) =>
 const flip = (setFilters: SetFilters, key: "teacherLed" | "questionsAndAnswers") => () =>
   setFilters((prev) => ({ ...prev, [key]: prev[key] ? null : true }));
 
+/** Past this many options the list runs in two columns, read down then across, so the languages fit in one screen. */
+const ONE_COLUMN_MAX = 8;
+
 function Options({ choice, selected, onToggle }: { choice: Choice; selected: string[]; onToggle: (value: string) => void }) {
   return (
-    <ul className="space-y-1">
+    <ul className={cn("space-y-1", choice.options.length > ONE_COLUMN_MAX && "columns-2 gap-x-2 [&>li]:break-inside-avoid")}>
       {choice.options.map((option) => (
         <li key={option.value}>
           <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-accent md:py-0.5">
             <input type="checkbox" checked={selected.includes(option.value)} onChange={() => onToggle(option.value)} />
             {option.flag && <FlagIcon flag={option.flag} />}
-            {option.label}
+            <span className="truncate">{option.label}</span>
           </label>
         </li>
       ))}
@@ -100,7 +101,7 @@ export function FilterToolbar({ listings, filters, setFilters }: { listings: Lis
               <ChevronDownIcon />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="max-h-80 overflow-y-auto">
+          <PopoverContent className={cn("max-h-[80vh] overflow-y-auto", choice.options.length > ONE_COLUMN_MAX && "w-96")}>
             <Options choice={choice} selected={filters[choice.key]} onToggle={onToggle(setFilters, choice.key)} />
           </PopoverContent>
         </Popover>

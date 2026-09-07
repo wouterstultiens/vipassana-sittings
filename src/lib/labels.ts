@@ -78,10 +78,9 @@ export type LanguageFlag = (typeof LANGUAGE_FLAG)[keyof typeof LANGUAGE_FLAG];
 export const languageFlag = (code: string): LanguageFlag | null =>
   (LANGUAGE_FLAG as Record<string, LanguageFlag | undefined>)[code] ?? null;
 
-/** The language menu order: the browser language first when the data has it, then by English name. */
-export function sortLanguages(codes: string[], first: string): string[] {
-  const rest = codes.filter((c) => c !== first).sort((a, b) => languageName(a).localeCompare(languageName(b)));
-  return codes.includes(first) ? [first, ...rest] : rest;
+/** The language menu order: by English name. */
+export function sortLanguages(codes: string[]): string[] {
+  return [...codes].sort((a, b) => languageName(a).localeCompare(languageName(b)));
 }
 
 export const PLATFORM_LABEL: Record<Listing["platform"], string> = {
