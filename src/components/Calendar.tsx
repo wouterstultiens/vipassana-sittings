@@ -77,13 +77,14 @@ export function Calendar({ listings, builtAt }: { listings: Listing[]; builtAt: 
   const [headerRef, { height: headerHeight }] = useSize<HTMLDivElement>();
   const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView();
 
-  // Once, after the zone is known: open on the current hour, as a calendar does.
+  // Once, after the zone is known and the header is measured, so the jump
+  // lands under it: open on the current hour, as a calendar does.
   const scrolled = React.useRef(false);
   React.useEffect(() => {
-    if (!prefs || scrolled.current) return;
+    if (!prefs || !headerHeight || scrolled.current) return;
     scrolled.current = true;
     jumpTo(NOW_HOUR_ID);
-  }, [prefs]);
+  }, [prefs, headerHeight]);
 
   const previous = (
     <Button variant="outline" size="icon-sm" disabled={weeks === 0} onClick={() => setWeeks((w) => w - 1)} aria-label="Previous week">

@@ -19,9 +19,8 @@ describe("languageTitle", () => {
 });
 
 describe("sortLanguages", () => {
-  it("puts the browser language first when the data has it, then the rest by English name", () => {
-    expect(sortLanguages(["fr", "nl", "es", "en"], "nl")).toEqual(["nl", "en", "fr", "es"]);
-    expect(sortLanguages(["fr", "nl", "es", "en"], "de")).toEqual(["nl", "en", "fr", "es"]);
+  it("orders by English name", () => {
+    expect(sortLanguages(["fr", "nl", "es", "en"])).toEqual(["nl", "en", "fr", "es"]);
   });
 });
 
