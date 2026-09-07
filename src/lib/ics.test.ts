@@ -31,25 +31,20 @@ describe("icsEvent", () => {
     expect(line(ics, "DTEND")).toBe("DTEND;TZID=Europe/Amsterdam:20260803T080000");
   });
 
-  it("repeats weekly on the weekdays of the rule", () => {
+  it("writes one sitting, not the schedule rule", () => {
     const [s] = sittingsOf(aListing({ scheduleRules: [aRule({ weekdays: ["mon", "tue", "thu"] })] }));
-    expect(line(icsEvent(s), "RRULE")).toBe("RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH");
+    expect(icsEvent(s)).not.toContain("RRULE");
   });
 
-  it("repeats monthly for a rule with weeks of the month, with -1 for the last week", () => {
-    const [s] = sittingsOf(aListing({ scheduleRules: [aRule({ weekdays: ["mon"], weeksOfMonth: [1, 3, -1] })] }));
-    expect(line(icsEvent(s), "RRULE")).toBe("RRULE:FREQ=MONTHLY;BYDAY=1MO,3MO,-1MO");
-  });
-
-  it("identifies the event by the listing and the rule, so a second download updates the first", () => {
+  it("identifies the event by the sitting, so a second download updates the first", () => {
     const listing = aListing({ scheduleRules: [aRule({ weekdays: ["mon", "tue"] }), aRule({ weekdays: ["wed"], start: "20:00" })] });
     const week = sittingsOf(listing, new Date("2026-08-06T00:00:00Z"));
     expect(week.map((s) => line(icsEvent(s), "UID"))).toEqual([
-      "UID:772-0@vipassana-sittings",
-      "UID:772-0@vipassana-sittings",
-      "UID:772-1@vipassana-sittings",
+      "UID:772-0-1785733200000@vipassana-sittings",
+      "UID:772-0-1785819600000@vipassana-sittings",
+      "UID:772-1-1785952800000@vipassana-sittings",
     ]);
-    expect(icsFileName(week[2])).toBe("sitting-772-1.ics");
+    expect(icsFileName(week[2])).toBe("sitting-772-1-1785952800000.ics");
   });
 
   it("escapes the commas and semicolons in the summary", () => {

@@ -1,32 +1,14 @@
-// A hand-written repeating-event .ics for the schedule rule of one sitting,
-// downloaded as a Blob. Times are wall-clock in the host's zone with a TZID,
-// so the event follows the host through daylight saving, and the RRULE
-// carries the rule's weekdays or weeks of the month.
+// A hand-written one-event .ics for one sitting, downloaded as a Blob. Times
+// are wall-clock in the host's zone with a TZID, so the event lands on the
+// host's clock whatever zone the old student's calendar is in.
 import { TZDate } from "@date-fns/tz";
 import { addMinutes, format } from "date-fns";
-import type { ScheduleRule } from "@/schema/listing";
 import type { Sitting } from "@/lib/expand";
 import { joinFor, passwordNote } from "@/lib/join";
 import { fmtDuration } from "@/lib/labels";
 
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 const wallClock = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
-
-const BYDAY: Record<ScheduleRule["weekdays"][number], string> = {
-  mon: "MO",
-  tue: "TU",
-  wed: "WE",
-  thu: "TH",
-  fri: "FR",
-  sat: "SA",
-  sun: "SU",
-};
-
-function rrule(rule: ScheduleRule): string {
-  const days = rule.weekdays.map((wd) => BYDAY[wd]);
-  if (!rule.weeksOfMonth) return `FREQ=WEEKLY;BYDAY=${days.join(",")}`;
-  return `FREQ=MONTHLY;BYDAY=${rule.weeksOfMonth.flatMap((w) => days.map((d) => `${w}${d}`)).join(",")}`;
-}
 
 const esc = (s: string) =>
   s
@@ -55,8 +37,8 @@ function fold(contentLine: string): string {
   return parts.join("\r\n ");
 }
 
-/** The listing id and the rule index: the same rule downloads to the same event. */
-const uid = (sitting: Sitting) => `${sitting.listing.id}-${sitting.listing.scheduleRules.indexOf(sitting.rule)}`;
+/** The sitting key: the same sitting downloads to the same event. */
+const uid = (sitting: Sitting) => sitting.key;
 
 export function icsEvent(sitting: Sitting): string {
   const { listing, rule } = sitting;
@@ -81,7 +63,6 @@ export function icsEvent(sitting: Sitting): string {
     `DTSTAMP:${stamp(new Date())}`,
     `DTSTART;TZID=${rule.timeZone}:${wallClock(start)}`,
     `DTEND;TZID=${rule.timeZone}:${wallClock(addMinutes(start, rule.durationMinutes))}`,
-    `RRULE:${rrule(rule)}`,
     `SUMMARY:${esc(`Group sitting: ${listing.name}`)}`,
     `DESCRIPTION:${esc(description.join("\n"))}`,
     join.url ? `URL:${join.url}` : "",
