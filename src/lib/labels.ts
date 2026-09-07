@@ -96,6 +96,15 @@ export const PLATFORM_LABEL: Record<Listing["platform"], string> = {
   unknown: "Unknown platform",
 };
 
+/** A link as a name to read: the site's host without "www.", so "dhamma.org". */
+export function fmtSite(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export const MEDIUM_LABEL: Record<Listing["medium"], string> = {
   video: "Video",
   audio: "Audio only",

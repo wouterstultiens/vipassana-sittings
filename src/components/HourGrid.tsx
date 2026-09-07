@@ -20,13 +20,14 @@ const stateOf = (slot: Slot, now: Date): SlotState => (slot.end <= now ? "ended"
 /** The gutter cell of an hour inside a scroller: the page on a laptop, one day pane on a phone. */
 const hourCell = (scroller: ParentNode, h: number) => scroller.querySelector<HTMLElement>(`[data-hour="${h}"]`);
 
-/** The hour whose gutter cell is at the top of the view, under the sticky headers on a laptop. */
-export function hourInView(scroller: ParentNode = document): number {
+/** The hour whose gutter cell is at the top of the view, under the sticky headers on a laptop. Null when the scroller holds no day list. */
+export function hourInView(scroller: ParentNode = document): number | null {
   const top = scroller instanceof HTMLElement ? scroller.getBoundingClientRect().top : 0;
-  let active = 0;
+  let active: number | null = null;
   for (const h of HOURS) {
     const cell = hourCell(scroller, h);
     if (!cell) continue;
+    active ??= 0;
     const margin = scroller instanceof HTMLElement ? 0 : parseFloat(getComputedStyle(cell).scrollMarginTop);
     if (cell.getBoundingClientRect().top <= top + margin + 1) active = h;
   }

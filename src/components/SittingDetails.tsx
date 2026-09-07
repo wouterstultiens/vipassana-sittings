@@ -4,11 +4,13 @@
 // and the calendar file. Then how to join: the join link is the one filled
 // button, and the meeting id, password, and dial-in are rows for when the
 // link alone is not enough. Last the host: the host page, the contact, and
-// the listing's own text folded away. The calendar already shows every other
-// time this host offers, so the panel never names the schedule, and each fact
-// is shown once: the button names the platform, the city and country under
-// the time say where the host's clock is, and a long name is cut to one line
-// with the full name on hover.
+// the listing's own text folded away. The join link is the only button:
+// every other fact, a link included, is a row of label and value, so the
+// panel reads as one list with one thing to do. The calendar already shows
+// every other time this host offers, so the panel never names the schedule,
+// and each fact is shown once: the button names the platform, the city and
+// country under the time say where the host's clock is, and a long name is
+// cut to one line with the full name on hover.
 import * as React from "react";
 import {
   CalendarPlusIcon,
@@ -27,7 +29,7 @@ import type { Listing } from "@/schema/listing";
 import type { Sitting } from "@/lib/expand";
 import { downloadIcs, hostWeekday } from "@/lib/ics";
 import { joinFor, passwordNote } from "@/lib/join";
-import { type Clock, countryName, fmtDate, fmtDuration, fmtRepeat, fmtTime, PLATFORM_LABEL, zoneAbbr } from "@/lib/labels";
+import { type Clock, countryName, fmtDate, fmtDuration, fmtRepeat, fmtSite, fmtTime, PLATFORM_LABEL, zoneAbbr } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ListingBadges } from "@/components/ListingBadges";
@@ -53,6 +55,9 @@ function Copy({ text }: { text: string }) {
     </Button>
   );
 }
+
+/** A link in a row: an icon, the text cut to the row, and for a page an arrow out. */
+const LINK = "inline-flex min-w-0 items-center gap-1 underline";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -213,15 +218,16 @@ export function SittingDetails({
 
       <Group name="Host">
         {hostPage && (
-          <Button asChild variant="outline" className="w-full">
-            <a href={hostPage} target="_blank" rel="noopener">
-              <GlobeIcon /> Host page <ExternalLinkIcon />
+          <Row label="Host page">
+            <a className={LINK} href={hostPage} target="_blank" rel="noopener">
+              <GlobeIcon className="size-3 shrink-0" /> <span className="truncate">{fmtSite(hostPage)}</span>
+              <ExternalLinkIcon className="size-3 shrink-0" />
             </a>
-          </Button>
+          </Row>
         )}
         {listing.host.email && (
           <Row label="Contact">
-            <a className="inline-flex min-w-0 items-center gap-1 underline" href={`mailto:${listing.host.email}`}>
+            <a className={LINK} href={`mailto:${listing.host.email}`}>
               <MailIcon className="size-3 shrink-0" /> <span className="truncate">{listing.host.email}</span>
             </a>
           </Row>
