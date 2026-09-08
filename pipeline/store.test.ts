@@ -19,6 +19,7 @@ const host: Host = {
   city: "Example City",
   email: null,
   inputHash: "a",
+  sourcesChanged: false,
 };
 
 let dir: string;

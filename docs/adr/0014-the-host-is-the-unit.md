@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+_Superseded in part by ADR 0015: the weekly run only watches the sources, and the owner writes every host file with a coding agent. The prompt and the master run below are history._
+
 # The host is the unit, extracted from every source in one call, judged against a master run
 
 The pipeline stored one record per API row and read one text for almost every row: the free text the row carries. The audit of 7 September 2026 (`docs/research/data-sources-audit.md`) found that where a host's own page could be compared with the row, one in three disagreed on a sitting or a room, and the page was the current one every time. Six hosts split one programme over several rows, and the old-student pages sit behind four kinds of login wall. We decided that the unit of the data is the host, one file per API sub-location, extracted from all its rows and all its pages in one call; that one collect logs in through every wall and writes the whole material, raw API and page texts, into the private data repo before the extraction reads it; that a host is recomputed only when the hash of its input texts moves; and that the reference the prompt is tuned against is a master run written by a coding agent from the full sources, replaced by the prompt's own output once the prompt scores equal.

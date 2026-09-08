@@ -1,24 +1,23 @@
 import { describe, expect, it } from "vitest";
-import type { Host } from "../src/schema/host.ts";
-import { needsExtraction, removedIds, unknownListIds } from "./plan.ts";
+import { hostState, removedIds, unknownListIds } from "./changes.ts";
 
-const stored = (over: Partial<Host> = {}) => ({ id: 1, inputHash: "a", ...over }) as Host;
+const stored = (inputHash: string, sourcesChanged = false) => ({ inputHash, sourcesChanged });
 
-describe("needsExtraction", () => {
-  it("extracts when no file is stored", () => {
-    expect(needsExtraction({ stored: null, inputHash: "a", all: false })).toBe(true);
+describe("hostState", () => {
+  it("leaves a host whose sources did not move", () => {
+    expect(hostState({ stored: stored("a"), inputHash: "a" })).toBe("unchanged");
   });
 
-  it("leaves an unchanged host alone", () => {
-    expect(needsExtraction({ stored: stored(), inputHash: "a", all: false })).toBe(false);
+  it("marks a host whose sources moved", () => {
+    expect(hostState({ stored: stored("a"), inputHash: "b" })).toBe("changed");
   });
 
-  it("extracts when the input hash differs", () => {
-    expect(needsExtraction({ stored: stored(), inputHash: "b", all: false })).toBe(true);
+  it("tells a marked host apart from a newly changed one", () => {
+    expect(hostState({ stored: stored("a", true), inputHash: "b" })).toBe("still-changed");
   });
 
-  it("extracts every host under --all", () => {
-    expect(needsExtraction({ stored: stored(), inputHash: "a", all: true })).toBe(true);
+  it("settles a marked host whose sources match again", () => {
+    expect(hostState({ stored: stored("a", true), inputHash: "a" })).toBe("settled");
   });
 });
 
