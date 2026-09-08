@@ -70,6 +70,7 @@ export function icsEvent(sitting: Sitting, repeat = false): string {
     `Password: ${passwordNote(join.password)}`,
     join.dialIn ? `Dial in: ${join.dialIn.numbers.join(", ")}` : "",
     join.dialIn?.accessCode ? `Access code: ${join.dialIn.accessCode}` : "",
+    join.dialIn?.password ? `Dial-in password: ${join.dialIn.password}` : "",
     host.pageUrl ? `Host page: ${host.pageUrl}` : "",
   ].filter(Boolean);
 

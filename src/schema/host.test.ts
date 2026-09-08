@@ -13,8 +13,8 @@ const extraction = {
 };
 
 describe("HostExtraction", () => {
-  it("stores the primary IANA name of a time zone alias", () => {
-    expect(HostExtraction.parse(extraction).timeZone).toBe("America/Toronto");
+  it("keeps the zone name the extraction read", () => {
+    expect(HostExtraction.parse({ ...extraction, timeZone: "Asia/Kolkata" }).timeZone).toBe("Asia/Kolkata");
   });
 
   it("rejects a zone the runtime does not know", () => {
@@ -37,5 +37,15 @@ describe("Join", () => {
 
   it("rejects a url that is not http", () => {
     expect(Join.safeParse({ ...join, url: "zoommtg://a.invalid" }).success).toBe(false);
+  });
+
+  it("keeps the dial-in access code and its password apart", () => {
+    const dialIn = { numbers: ["+1 778 907 2071"], accessCode: "819 423 1414", password: "269712" };
+    expect(Join.parse({ ...join, url: null, dialIn }).dialIn).toEqual(dialIn);
+  });
+
+  it("rejects a dial-in that leaves the password out", () => {
+    const dialIn = { numbers: ["+1 778 907 2071"], accessCode: "819 423 1414" };
+    expect(Join.safeParse({ ...join, url: null, dialIn }).success).toBe(false);
   });
 });

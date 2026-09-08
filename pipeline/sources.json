@@ -8,11 +8,13 @@
   "1945": [
     { "url": "https://jp.dhamma.org/os/online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" },
     { "url": "https://jp.dhamma.org/os/coronavirus-support/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" },
-    { "url": "https://jp.dhamma.org/os/old-student-support/world-online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" }
+    { "url": "https://jp.dhamma.org/os/old-student-support/world-online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" },
+    { "url": "https://jp.dhamma.org/os/old-student-support/weekday-evening-online-sessions/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" }
   ],
   "1993": [{ "url": "https://phala.dhamma.org/en/virtual-group-sittings/", "wall": "post-password" }],
   "1994": [{ "url": "https://fr.dhamma.org/en/sitting-old-student/online-meditation/", "wall": "typo3", "loginUrl": "https://fr.dhamma.org/en/sitting-old-student/online-meditation/" }],
   "2010": [{ "url": "https://sobhana.dhamma.org/os/group-sittings/", "wall": "typo3", "loginUrl": "https://sobhana.dhamma.org/os/" }],
+  "2015": [{ "url": "https://os.vridhamma.org/Old-Students", "wall": "drupal", "loginUrl": "https://os.vridhamma.org/user/login" }],
   "2030": [{ "url": "https://karuna.dhamma.org/os/virtual-group-sittings/", "wall": "wordpress" }],
   "2032": [{ "url": "https://dhara.dhamma.org/os/regions/virtual-group-sittings/", "wall": "wordpress" }],
   "2037": [{ "url": "https://sarana.dhamma.org/pt-BR/meditacoes-em-grupo-vipassana/", "wall": "post-password" }],
@@ -27,7 +29,10 @@
     { "url": "https://kunja.dhamma.org/os/practice/vgs/", "wall": "wordpress" },
     { "url": "https://kunja.dhamma.org/virtual/index.html", "wall": "none" }
   ],
-  "2247": [{ "url": "https://jp.dhamma.org/os/old-student-support/world-online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" }],
+  "2247": [
+    { "url": "https://jp.dhamma.org/os/old-student-support/world-online-group-sittings/", "wall": "typo3", "loginUrl": "https://jp.dhamma.org/os/" },
+    { "url": "https://os.vipassana.vn/en/uncategorized-en/buoi-thien-chung-online-hang-tuan-cho-thien-sinh-cu.html", "wall": "password-protected" }
+  ],
   "2320": [{ "url": "https://id.dhamma.org/en/virtual-group-sitting/", "wall": "post-password" }],
   "2356": [{ "url": "https://hu.dhamma.org/en/old-students/online-group-sitting/", "wall": "typo3", "loginUrl": "https://hu.dhamma.org/en/old-students/" }],
   "2370": [{ "url": "https://ua.dhamma.org/old-student/meditation-online/", "wall": "typo3", "loginUrl": "https://ua.dhamma.org/old-student/" }],

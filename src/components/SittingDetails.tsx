@@ -231,6 +231,11 @@ export function SittingDetails({ sitting, zone, clock }: { sitting: Sitting; zon
                       Access code: <span className="font-mono">{join.dialIn.accessCode}</span>
                     </div>
                   )}
+                  {join.dialIn.password && (
+                    <div className="mt-1 text-xs">
+                      Password: <span className="font-mono">{join.dialIn.password}</span>
+                    </div>
+                  )}
                 </div>
               </Row>
             )}

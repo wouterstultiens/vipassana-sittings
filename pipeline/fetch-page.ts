@@ -9,9 +9,11 @@ const USER_AGENT =
 export class PageFetchError extends Error {}
 
 // The login wall in front of a page. Every wall takes the one old-student
-// login. `typo3` posts the login form found on `loginUrl`; `wordpress` posts to
-// the site's wp-login.php; `post-password` unlocks one protected WordPress post.
-export type Wall = "none" | "typo3" | "wordpress" | "post-password";
+// login. `typo3` and `drupal` post the login form found on `loginUrl`;
+// `wordpress` posts to the site's wp-login.php; `post-password` unlocks one
+// protected WordPress post; `password-protected` unlocks a whole site held by
+// the Password Protected plugin.
+export type Wall = "none" | "typo3" | "drupal" | "wordpress" | "post-password" | "password-protected";
 
 export type Page = { url: string; wall: Wall; loginUrl?: string };
 
@@ -70,15 +72,28 @@ export class Session {
   }
 
   // Posts the login form on `loginUrl` with the old-student login. The form's
-  // hidden fields go along, so TYPO3's request token and WordPress's redirect
-  // survive. Done once per login page per session.
+  // hidden fields go along, so TYPO3's request token, Drupal's build id, and
+  // WordPress's redirect survive. Done once per login page per session.
   private async login(page: Page): Promise<void> {
     if (page.wall === "none") return;
     const origin = new URL(page.url).origin;
     const key = page.wall === "post-password" ? `${page.wall}:${page.url}` : `${page.wall}:${origin}`;
     if (this.loggedIn.has(key)) return;
     const { user, pass } = credentials();
-    if (page.wall === "post-password") {
+    if (page.wall === "password-protected") {
+      // The plugin holds the whole site behind one password, not a user.
+      const res = await this.request(`${origin}/?password-protected=login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", Referer: page.url },
+        body: new URLSearchParams({
+          password_protected_pwd: pass,
+          password_protected_cookie_test: "1",
+          "password-protected": "login",
+          redirect_to: page.url,
+        }).toString(),
+      });
+      await res.text();
+    } else if (page.wall === "post-password") {
       const res = await this.request(`${origin}/wp-login.php?action=postpass`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", Referer: page.url },
@@ -100,12 +115,17 @@ export class Session {
       });
       await res.text();
     } else {
-      if (!page.loginUrl) throw new PageFetchError("a typo3 wall needs a loginUrl");
+      if (!page.loginUrl) throw new PageFetchError(`a ${page.wall} wall needs a loginUrl`);
       const form = await this.loginForm(page.loginUrl);
       const fields = new URLSearchParams(form.hidden);
-      fields.set("user", user);
       fields.set("pass", pass);
-      fields.set("logintype", "login");
+      if (page.wall === "drupal") {
+        fields.set("name", user);
+        fields.set("op", "Log in");
+      } else {
+        fields.set("user", user);
+        fields.set("logintype", "login");
+      }
       const res = await this.request(form.action, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", Referer: page.loginUrl },
@@ -116,8 +136,9 @@ export class Session {
     this.loggedIn.add(key);
   }
 
-  // The TYPO3 login form on `loginUrl`: its action and hidden fields. The hidden
-  // fields carry the request token the login needs.
+  // The login form on `loginUrl`: its action and hidden fields. The hidden
+  // fields carry what the login needs to be accepted: TYPO3's request token,
+  // Drupal's build id.
   private async loginForm(loginUrl: string) {
     const res = await this.request(loginUrl);
     const html = await res.text();
@@ -156,14 +177,16 @@ export class Session {
   }
 }
 
-// A page that answers 200 but still asks for the login: a password field in a
-// form that posts to a login endpoint. How much text stands around the form
-// says nothing, because a theme renders the form inside the whole site: the
-// login page of dhara.dhamma.org carries 4,124 characters of menu around it,
-// and was stored as the host's page text for a day.
+// A page that answers 200 but still asks for the login: a form that holds a
+// password field and names a login. Every wall met writes "login" or
+// "post_password" in that form, whatever endpoint it posts to: ae.dhamma.org
+// posts to /user-login/, not to wp-login.php. How much text stands around the
+// form says nothing, because a theme renders the form inside the whole site:
+// the login page of dhara.dhamma.org carries 4,124 characters of menu around
+// it, and was stored as the host's page text for a day.
 function isLoginWall(html: string): boolean {
   const forms = html.match(/<form[^>]*>[\s\S]*?<\/form>/gi) ?? [];
-  return forms.some((f) => /type="password"/i.test(f) && /post_password|logintype|wp-login/i.test(f));
+  return forms.some((f) => /type="password"/i.test(f) && /login|post_password/i.test(f));
 }
 
 export async function fetchPage(page: Page): Promise<string> {
