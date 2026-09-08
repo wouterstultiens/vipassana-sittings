@@ -78,7 +78,7 @@ One entry of the page list: a URL on a host's site and its wall. The host's page
 _Avoid_: source page, host page, website source, external page
 
 **Wall**:
-The login in front of a page. Four kinds: none, a TYPO3 form, a WordPress login, and a WordPress post password. Every wall takes the one old-student login.
+The login in front of a page. Six kinds: none, a TYPO3 form, a Drupal form, a WordPress login, a WordPress post password, and a site held by the Password Protected plugin. Every wall takes the one old-student login.
 _Avoid_: auth, gate, paywall
 
 **Extraction**:

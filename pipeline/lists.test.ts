@@ -14,8 +14,10 @@ describe("the hand-kept lists", () => {
       expect(pages.length).toBeGreaterThan(0);
       for (const page of pages) {
         expect(page.url.startsWith("https://")).toBe(true);
-        expect(["none", "typo3", "wordpress", "post-password"]).toContain(page.wall);
-        if (page.wall === "typo3") expect(page.loginUrl?.startsWith("https://")).toBe(true);
+        expect(["none", "typo3", "drupal", "wordpress", "post-password", "password-protected"]).toContain(page.wall);
+        if (page.wall === "typo3" || page.wall === "drupal") {
+          expect(page.loginUrl?.startsWith("https://")).toBe(true);
+        }
       }
     }
   });

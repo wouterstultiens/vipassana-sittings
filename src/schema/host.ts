@@ -13,16 +13,6 @@ const isTimeZone = (tz: string) => {
     return false;
   }
 };
-// The primary IANA name where the runtime knows one, so America/Montreal is
-// stored as America/Toronto whatever the extraction wrote. An unknown zone
-// passes through: the refine before it already reports it.
-const canonicalTimeZone = (tz: string) => {
-  try {
-    return new Intl.DateTimeFormat("en", { timeZone: tz }).resolvedOptions().timeZone;
-  } catch {
-    return tz;
-  }
-};
 const nonempty = <T>(a: T[]) => a.length > 0;
 const nonemptyString = (s: string) => s.length > 0;
 const isUrl = (s: string) => URL.canParse(s) && /^https?:$/.test(new URL(s).protocol);
@@ -48,9 +38,12 @@ export const Password = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("given"), value: z.string().refine(nonemptyString) }),
 ]);
 
+// What a caller enters after dialling: the access code, and the password some
+// rooms ask for after it. Zoom asks for both, so one field cannot hold them.
 export const DialIn = z.object({
   numbers: z.array(z.string().refine(nonemptyString)).refine(nonempty),
   accessCode: z.string().nullable(),
+  password: z.string().nullable(),
 });
 
 // What an old student needs to enter one sitting. Every rule carries its own,
@@ -101,11 +94,10 @@ export const Rule = z.object({
 // pages. The fields below it are the ones the API states outright.
 export const HostExtraction = z.object({
   name: z.string().refine((s) => s.length > 0 && s.length <= 80), // the name the old student sees
-  timeZone: z
-    .string()
-    .refine(isTimeZone)
-    .overwrite(canonicalTimeZone)
-    .describe("IANA time zone, the host's clock for every rule"),
+  // The name the extraction read, not the runtime's: ICU still answers
+  // Asia/Calcutta for Asia/Kolkata, so canonicalising here would write an
+  // outdated name back into a host file on every settle.
+  timeZone: z.string().refine(isTimeZone).describe("IANA time zone, the host's clock for every rule"),
   languages: z
     .array(z.string().refine((s) => /^[a-z]{2}$/.test(s), "not a two-letter ISO 639-1 code such as zh"))
     .refine(nonempty)

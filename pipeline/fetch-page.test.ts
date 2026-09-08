@@ -11,6 +11,19 @@ const typo3Form = `<html><body><form action="/os/?tx_felogin_login%5Baction%5D=l
 <input type="text" name="user"><input type="password" name="pass">
 </form></body></html>`;
 
+const drupalForm = `<html><body><form action="/user/login" method="post" id="user-login">
+<input type="text" name="name"><input type="password" name="pass">
+<input type="hidden" name="form_build_id" value="form-abc">
+<input type="hidden" name="form_id" value="user_login">
+</form></body></html>`;
+
+const siteWidePasswordForm = `<html><body><form action="https://example.invalid/?password-protected=login" method="post">
+<input type="password" name="password_protected_pwd"></form></body></html>`;
+
+const themeLoginForm = `<html><body><p>You are required to login to view this page.</p>
+<form action="https://example.invalid/user-login/" method="post">
+<input type="text" name="log"><input type="password" name="pwd"></form></body></html>`;
+
 const postPasswordForm = `<html><body><form action="https://example.invalid/wp-login.php?action=postpass" method="post">
 <p>To view this protected post, enter the password below:</p>
 <input name="post_password" type="password"></form></body></html>`;
@@ -147,6 +160,58 @@ describe("fetchPage behind a wall", () => {
     const post = calls.find((c) => c.init.method === "POST")!;
     expect(new URLSearchParams(post.init.body as string).get("post_password")).toBe("secret");
     expect((post.init.headers as Record<string, string>).Referer).toBe(PAGE);
+  });
+
+  it("posts the Drupal form with its build id, then keeps the cookie", async () => {
+    serve({
+      [LOGIN]: () => new Response(drupalForm),
+      "https://example.invalid/user/login": () => redirect(PAGE, "SESSabc=xyz; Path=/"),
+    });
+    await fetchPage({ url: PAGE, wall: "drupal", loginUrl: LOGIN });
+    const post = calls.find((c) => c.init.method === "POST")!;
+    expect(post.url).toBe("https://example.invalid/user/login");
+    const body = new URLSearchParams(post.init.body as string);
+    expect(body.get("form_build_id")).toBe("form-abc");
+    expect(body.get("name")).toBe("student");
+    expect(body.get("pass")).toBe("secret");
+    expect(body.get("op")).toBe("Log in");
+    const page = calls.find((c) => c.url === PAGE)!;
+    expect((page.init.headers as Record<string, string>).Cookie).toBe("SESSabc=xyz");
+  });
+
+  it("fails when a form wall has no loginUrl", async () => {
+    serve({});
+    await expect(fetchPage({ url: PAGE, wall: "drupal" })).rejects.toThrow("a drupal wall needs a loginUrl");
+  });
+
+  it("unlocks a site held by the Password Protected plugin", async () => {
+    serve({
+      "https://example.invalid/?password-protected=login": () =>
+        redirect(PAGE, "bid_1=hash; Path=/"),
+    });
+    await fetchPage({ url: PAGE, wall: "password-protected" });
+    const post = calls.find((c) => c.init.method === "POST")!;
+    const body = new URLSearchParams(post.init.body as string);
+    expect(body.get("password_protected_pwd")).toBe("secret");
+    expect(body.get("redirect_to")).toBe(PAGE);
+  });
+
+  it("names the wall when a login form posts somewhere other than wp-login.php", async () => {
+    serve({
+      "https://example.invalid/wp-login.php": () => redirect(PAGE),
+      [PAGE]: () => new Response(themeLoginForm),
+    });
+    await expect(fetchPage({ url: PAGE, wall: "wordpress" })).rejects.toThrow("wordpress login did not open it");
+  });
+
+  it("names the wall when the site password did not open the page", async () => {
+    serve({
+      "https://example.invalid/?password-protected=login": () => redirect(PAGE),
+      [PAGE]: () => new Response(siteWidePasswordForm),
+    });
+    await expect(fetchPage({ url: PAGE, wall: "password-protected" })).rejects.toThrow(
+      "password-protected login did not open it",
+    );
   });
 
   it("names the wall when the login did not open the page", async () => {
