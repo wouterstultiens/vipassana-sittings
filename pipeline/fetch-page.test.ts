@@ -15,6 +15,14 @@ const postPasswordForm = `<html><body><form action="https://example.invalid/wp-l
 <p>To view this protected post, enter the password below:</p>
 <input name="post_password" type="password"></form></body></html>`;
 
+// The WordPress login page as a theme renders it: the form inside the whole
+// site, so the text around it is long. Dhamma Dhara answered like this.
+const loginPageInFullSite = `<html><body><nav>${"Old Students Courses Schedule Contact ".repeat(150)}</nav>
+<form name="loginform" action="https://example.invalid/wp-login.php" method="post">
+<label>Username</label><input name="log" type="text">
+<label>Password</label><input name="pwd" type="password">
+<label>Remember Me</label><input type="submit" value="Log In"></form></body></html>`;
+
 type Call = { url: string; init: RequestInit };
 let calls: Call[];
 
@@ -73,6 +81,11 @@ describe("fetchPage without a wall", () => {
 
   it("fails when the page answers 200 with only a password form", async () => {
     serve({ [PAGE]: () => new Response(postPasswordForm) });
+    await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow("behind a login wall");
+  });
+
+  it("fails on a login form wrapped in a whole page, however long the text", async () => {
+    serve({ [PAGE]: () => new Response(loginPageInFullSite) });
     await expect(fetchPage({ url: PAGE, wall: "none" })).rejects.toThrow("behind a login wall");
   });
 
@@ -140,6 +153,14 @@ describe("fetchPage behind a wall", () => {
     serve({
       "https://example.invalid/wp-login.php": () => redirect(PAGE),
       [PAGE]: () => new Response(postPasswordForm),
+    });
+    await expect(fetchPage({ url: PAGE, wall: "wordpress" })).rejects.toThrow("wordpress login did not open it");
+  });
+
+  it("names the wall when the login answers with the login page again", async () => {
+    serve({
+      "https://example.invalid/wp-login.php": () => redirect(PAGE),
+      [PAGE]: () => new Response(loginPageInFullSite),
     });
     await expect(fetchPage({ url: PAGE, wall: "wordpress" })).rejects.toThrow("wordpress login did not open it");
   });

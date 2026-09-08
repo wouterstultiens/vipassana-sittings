@@ -156,17 +156,14 @@ export class Session {
   }
 }
 
-// A page that answers 200 but shows only a login or post-password form.
+// A page that answers 200 but still asks for the login: a password field in a
+// form that posts to a login endpoint. How much text stands around the form
+// says nothing, because a theme renders the form inside the whole site: the
+// login page of dhara.dhamma.org carries 4,124 characters of menu around it,
+// and was stored as the host's page text for a day.
 function isLoginWall(html: string): boolean {
   const forms = html.match(/<form[^>]*>[\s\S]*?<\/form>/gi) ?? [];
-  const passwordForms = forms.filter((f) => /type="password"/i.test(f));
-  if (passwordForms.length === 0) return false;
-  // A WordPress protected post shows the form in place of the body.
-  if (passwordForms.some((f) => /post_password|logintype|wp-login/i.test(f))) {
-    const body = pageText(html);
-    return body.length < 2_000;
-  }
-  return false;
+  return forms.some((f) => /type="password"/i.test(f) && /post_password|logintype|wp-login/i.test(f));
 }
 
 export async function fetchPage(page: Page): Promise<string> {
