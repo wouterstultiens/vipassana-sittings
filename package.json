@@ -12,12 +12,13 @@
     "collect": "tsx --env-file-if-exists=.env pipeline/collect.ts",
     "refresh": "tsx --env-file-if-exists=.env pipeline/refresh.ts",
     "test": "vitest run",
-    "tsc": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json"
+    "tsc": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json",
+    "score": "tsx --env-file-if-exists=.env pipeline/score.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.123.0",
     "@astrojs/react": "^6.0.5",
     "@date-fns/tz": "^1.5.0",
+    "@google/genai": "^2.21.0",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.1",
     "class-variance-authority": "^0.7.1",

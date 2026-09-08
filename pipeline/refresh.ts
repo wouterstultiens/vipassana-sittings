@@ -10,12 +10,13 @@
 //   --all      re-extract every host, whatever the hashes say
 
 import { appendFileSync } from "node:fs";
-import { fetchApi, rowsByHost } from "./api.ts";
+import { type ApiRow, fetchApi, rowsByHost } from "./api.ts";
 import { diffFields } from "./diff.ts";
-import { claudeAsk, extractHost, type PageInput } from "./extract.ts";
+import { extractHost, geminiAsk, type Links, type PageInput } from "./extract.ts";
 import { type Page, Session } from "./fetch-page.ts";
 import { inputHash } from "./hash.ts";
 import { buildHost } from "./host.ts";
+import { absoluteUrl, checkLink, type LinkCheck } from "./links.ts";
 import { excludedIds, pageList } from "./lists.ts";
 import { needsExtraction, removedIds, unknownListIds } from "./plan.ts";
 import { deleteStored, readStored, storedIds, writeStored } from "./store.ts";
@@ -41,7 +42,7 @@ for (const id of unknownListIds({
   summary.warnings.push(`id ${id} is on a hand-kept list but not in the API`);
 }
 
-const ask = claudeAsk();
+const ask = geminiAsk();
 const session = new Session();
 const plan: string[] = [];
 const filed = new Set(storedIds());
@@ -52,6 +53,23 @@ const textOf = (page: Page) => {
   let text = fetched.get(page.url);
   if (!text) fetched.set(page.url, (text = session.fetchPage(page)));
   return text;
+};
+
+// Where every row url and host url of a host leads, each url checked once per
+// run. The checks are not in the input hash: a redirect target can carry a
+// per-request id, and a dead link is worth a look only when a text moved too.
+const checked = new Map<string, Promise<LinkCheck>>();
+const linksOf = async (rows: ApiRow[]): Promise<Links> => {
+  const links: Links = new Map();
+  for (const raw of rows.flatMap((row) => [row.url, row.sub_location.url])) {
+    const url = raw?.trim();
+    if (!url) continue;
+    const absolute = absoluteUrl(url);
+    let check = checked.get(absolute);
+    if (!check) checked.set(absolute, (check = checkLink(session, absolute)));
+    links.set(absolute, await check);
+  }
+  return links;
 };
 
 // The run summary names every host the calendar cannot place, whether it was
@@ -80,7 +98,7 @@ for (const [id, rows] of hosts) {
 
   let extracted;
   try {
-    extracted = buildHost({ rows, extraction: await extractHost(ask, rows, pages), pages });
+    extracted = buildHost({ rows, extraction: await extractHost(ask, rows, pages, await linksOf(rows)), pages });
   } catch (error) {
     summary.failed.push({ id, reason: `extraction: ${(error as Error).message}` });
     noteWithoutRule(stored);

@@ -16,6 +16,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type ApiRow, fetchApi, rowsByHost } from "./api.ts";
 import { type Page, Session } from "./fetch-page.ts";
+import { absoluteUrl, checkLink, type LinkCheck } from "./links.ts";
 import { excludedIds, pageList } from "./lists.ts";
 import { pageFileName } from "./page-file.ts";
 
@@ -32,21 +33,7 @@ type PageRecord = {
   error: string | null;
 };
 
-type LinkCheck = { url: string; status: number | null; finalUrl: string | null; error: string | null };
-
 type LinkRecord = { id: number; hostId: number; rowUrl: LinkCheck | null; hostUrl: LinkCheck | null };
-
-// Where a URL ends up after its redirects. A row url that lands on a meeting
-// service is itself the join link.
-async function checkLink(session: Session, url: string): Promise<LinkCheck> {
-  try {
-    const res = await session.request(url);
-    await res.text();
-    return { url, status: res.status, finalUrl: res.url || url, error: null };
-  } catch (error) {
-    return { url, status: null, finalUrl: null, error: (error as Error).message };
-  }
-}
 
 const api: ApiRow[] = await fetchApi();
 const hosts = new Map([...rowsByHost(api)].filter(([id]) => !excludedIds.has(id)));
@@ -97,7 +84,6 @@ for (const { page, hostIds } of byUrl.values()) {
 }
 writeFileSync(join(DIR, "pages.json"), JSON.stringify(pageRecords, null, 2) + "\n");
 
-const absolute = (u: string) => (u.startsWith("/") ? `https://www.dhamma.org${u}` : u);
 const links: LinkRecord[] = [];
 for (const rows of hosts.values()) {
   for (const row of rows) {
@@ -106,8 +92,8 @@ for (const rows of hosts.values()) {
     links.push({
       id: row.id,
       hostId: row.sub_location.id,
-      rowUrl: rowUrl ? await checkLink(session, absolute(rowUrl)) : null,
-      hostUrl: hostUrl ? await checkLink(session, absolute(hostUrl)) : null,
+      rowUrl: rowUrl ? await checkLink(session, absoluteUrl(rowUrl)) : null,
+      hostUrl: hostUrl ? await checkLink(session, absoluteUrl(hostUrl)) : null,
     });
   }
 }

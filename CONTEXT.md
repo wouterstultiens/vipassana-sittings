@@ -66,7 +66,7 @@ Whether a sitting is video, audio only, or a one-way live stream.
 _Avoid_: format, mode, type
 
 **Sources**:
-Everything the extraction reads, written to the private data repo by one collect: the raw API and the text of every page in the page list. Rewritten whole on every collect, never interpreted.
+Everything the extraction reads, written to the private data repo by one collect: the raw API, the text of every page in the page list, and where every row url and host url leads. Rewritten whole on every collect, never interpreted.
 _Avoid_: collection, corpus, snapshot, cache, dump, golden dataset
 
 **Page list**:
