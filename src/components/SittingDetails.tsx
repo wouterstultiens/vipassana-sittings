@@ -9,7 +9,8 @@
 // every other time this host offers, so the panel never names the schedule,
 // and each fact is shown once: the button names the platform, the city and
 // country under the time say where the host's clock is, and a long name is
-// cut to one line with the full name on hover.
+// cut to one line with the full name on hover. A host whose sources moved
+// carries a note under its name, to the host page.
 import * as React from "react";
 import {
   CalendarPlusIcon,
@@ -18,6 +19,7 @@ import {
   CopyIcon,
   ExternalLinkIcon,
   GlobeIcon,
+  TriangleAlertIcon,
   MailIcon,
   MapPinIcon,
   PhoneIcon,
@@ -76,6 +78,31 @@ function Group({ name, children }: { name: string; children: React.ReactNode }) 
   );
 }
 
+/**
+ * The note on a host whose sources moved. The old student is told nothing
+ * about how the site reads its data: only that the details may be old, that
+ * the owner is on it, and where the truth is in the meantime.
+ */
+function OldDetails({ pageUrl }: { pageUrl: string | null }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+      <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+      <p>
+        The details for this sitting may be out of date, I will try to update it as soon as possible.{" "}
+        {pageUrl && (
+          <>
+            Please check{" "}
+            <a className="font-medium underline" href={pageUrl} target="_blank" rel="noopener">
+              the host page
+            </a>{" "}
+            for the latest information.
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
 /** The calendar file, as a choice: the one sitting, or its repeats on this weekday, which is what most old students want. */
 function AddToCalendar({ sitting }: { sitting: Sitting }) {
   const repeat = fmtRepeat(sitting.rule, hostWeekday(sitting));
@@ -126,6 +153,8 @@ export function SittingDetails({ sitting, zone, clock }: { sitting: Sitting; zon
         <HostBadges host={host} />
         {rule.label && <p className="text-sm text-muted-foreground">{rule.label}</p>}
       </header>
+
+      {host.sourcesChanged && <OldDetails pageUrl={host.pageUrl} />}
 
       <section className="rounded-lg border bg-card p-4">
         <div className="text-sm text-muted-foreground">{fmtDate(sitting.start, zone)}</div>

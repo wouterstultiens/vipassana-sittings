@@ -1,8 +1,7 @@
 import { z } from "zod";
 
-// Constraints are written as .refine() so the JSON Schema sent to the model
-// stays plain: structured output rejects pattern, minItems, minimum, and
-// maxLength.
+// Constraints are written as .refine(), so the shape of a host file reads as
+// one flat schema and the checks sit next to the field they guard.
 
 // Intl.supportedValuesOf lists only ICU's canonical names (Asia/Calcutta, not
 // Asia/Kolkata), so a zone is valid when the runtime accepts it.
@@ -12,6 +11,16 @@ const isTimeZone = (tz: string) => {
     return true;
   } catch {
     return false;
+  }
+};
+// The primary IANA name where the runtime knows one, so America/Montreal is
+// stored as America/Toronto whatever the extraction wrote. An unknown zone
+// passes through: the refine before it already reports it.
+const canonicalTimeZone = (tz: string) => {
+  try {
+    return new Intl.DateTimeFormat("en", { timeZone: tz }).resolvedOptions().timeZone;
+  } catch {
+    return tz;
   }
 };
 const nonempty = <T>(a: T[]) => a.length > 0;
@@ -46,9 +55,13 @@ export const DialIn = z.object({
 
 // What an old student needs to enter one sitting. Every rule carries its own,
 // repeated in full when two rules or two hosts use the same room.
+// A page text writes a link as "text [url]", and the extraction sometimes
+// copies the closing bracket along.
+const unbracket = (s: string) => s.replace(/\]$/, "");
+
 export const Join = z.object({
   platform: Platform,
-  url: z.string().refine(isUrl).nullable(),
+  url: z.string().overwrite(unbracket).refine(isUrl).nullable(),
   meetingId: z.string().nullable(),
   password: Password,
   dialIn: DialIn.nullable(),
@@ -66,18 +79,37 @@ export const WeekOfMonth = z.union([
 
 export const Rule = z.object({
   weekdays: z.array(Weekday).refine(nonempty),
-  weeksOfMonth: z.array(WeekOfMonth).refine(nonempty).nullable(),
-  start: z.string().refine((s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s)),
+  weeksOfMonth: z
+    .array(WeekOfMonth)
+    .refine(nonempty)
+    .nullable()
+    .describe("Which occurrences of the weekday in the month, -1 the last. Null when every week."),
+  start: z
+    .string()
+    .refine((s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s))
+    .describe("HH:MM on the 24-hour clock, in the host's time zone"),
   durationMinutes: z.number().int().refine((n) => n > 0),
-  label: z.string().refine((s) => s.length > 0 && s.length <= 60).nullable(),
+  label: z
+    .string()
+    .refine((s) => s.length > 0 && s.length <= 60)
+    .nullable()
+    .describe("The host's own short name for this sitting, at most 60 characters"),
   join: Join,
 });
 
-// What the extraction returns for one host, from all its API rows and pages.
+// What a host file says about the host itself, read from all its rows and
+// pages. The fields below it are the ones the API states outright.
 export const HostExtraction = z.object({
   name: z.string().refine((s) => s.length > 0 && s.length <= 80), // the name the old student sees
-  timeZone: z.string().refine(isTimeZone), // the host's clock, one IANA zone for every rule
-  languages: z.array(z.string().refine((s) => /^[a-z]{2}$/.test(s))).refine(nonempty),
+  timeZone: z
+    .string()
+    .refine(isTimeZone)
+    .overwrite(canonicalTimeZone)
+    .describe("IANA time zone, the host's clock for every rule"),
+  languages: z
+    .array(z.string().refine((s) => /^[a-z]{2}$/.test(s), "not a two-letter ISO 639-1 code such as zh"))
+    .refine(nonempty)
+    .describe("ISO 639-1 codes"),
   medium: Medium,
   teacherLed: z.boolean(),
   questionsAndAnswers: z.boolean(),
@@ -94,6 +126,9 @@ export const Host = z.object({
   city: z.string().nullable(), // sub_location.city
   email: z.string().nullable(), // sub_location.contact_email
   inputHash: z.string(), // hash of every source text the extraction read
+  // True when the source texts moved after this file was written: the site
+  // sends the old student to the host page, and the owner writes the host again.
+  sourcesChanged: z.boolean(),
 });
 
 export type Join = z.infer<typeof Join>;

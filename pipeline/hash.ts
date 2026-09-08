@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ApiRow } from "./api.ts";
-import type { PageInput } from "./extract.ts";
+import type { PageInput } from "./fetch-page.ts";
 
 export function hashText(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");

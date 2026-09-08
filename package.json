@@ -10,12 +10,12 @@
     "build": "astro build",
     "preview": "astro preview",
     "collect": "tsx --env-file-if-exists=.env pipeline/collect.ts",
-    "refresh": "tsx --env-file-if-exists=.env pipeline/refresh.ts",
+    "watch": "tsx --env-file-if-exists=.env pipeline/watch.ts",
+    "settle": "tsx --env-file-if-exists=.env pipeline/settle.ts",
     "test": "vitest run",
     "tsc": "tsc -p tsconfig.json && tsc -p worker/tsconfig.json"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.123.0",
     "@astrojs/react": "^6.0.5",
     "@date-fns/tz": "^1.5.0",
     "@tailwindcss/vite": "^4.3.3",

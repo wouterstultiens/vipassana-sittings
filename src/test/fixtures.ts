@@ -30,6 +30,7 @@ export const aHost = (over: Partial<Host> = {}): Host => ({
   email: "info@example.org",
   pageUrl: "https://example.org",
   inputHash: "a",
+  sourcesChanged: false,
   languages: ["en"],
   medium: "video",
   teacherLed: false,

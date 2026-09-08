@@ -1,20 +1,17 @@
 name: Deploy
 
 # Builds the site with the private data and deploys the Worker to workers.dev.
-# A later issue adds the weekly refresh of the data. `refresh_all` is its switch.
+# Once a week it first watches the sources: it marks every host whose source
+# texts moved, so the site warns the old student and an issue tells the owner
+# to write that host again from the fresh sources. No model is called here.
 
 on:
   push:
     branches: [main]
   schedule:
-    # Every Monday at 04:00 UTC. The refresh runs once per week, not daily.
+    # Every Monday at 04:00 UTC. The watch runs once per week, not daily.
     - cron: "0 4 * * 1"
   workflow_dispatch:
-    inputs:
-      refresh_all:
-        description: Refresh every host, not only the changed ones
-        type: boolean
-        default: false
 
 # Two runs must never deploy at the same time.
 concurrency:
@@ -23,6 +20,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   deploy:
@@ -50,6 +48,28 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # A page that cannot be read must not stop the deploy: the step records
+      # its outcome and the last step of the job fails on it.
+      - name: Watch the sources
+        id: watch
+        if: github.event_name != 'push'
+        continue-on-error: true
+        env:
+          OLD_STUDENT_USER: ${{ secrets.OLD_STUDENT_USER }}
+          OLD_STUDENT_PASS: ${{ secrets.OLD_STUDENT_PASS }}
+        run: pnpm watch
+
+      # A watch that failed on one page still marked every host it could read.
+      - name: Commit the marks to the data repo
+        if: github.event_name != 'push'
+        working-directory: data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Watch $(date -u +%F): the sources of some hosts moved"
+          git push
+
       - name: Build the site
         run: pnpm build
 
@@ -58,3 +78,14 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # The notification: an issue, so the owner is mailed and the work is tracked.
+      - name: Tell the owner what to extract
+        if: steps.watch.outputs.tell == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Sources changed on $(date -u +%F)" --body-file watch-report.md
+
+      - name: Fail when the watch failed
+        if: steps.watch.outcome == 'failure'
+        run: exit 1

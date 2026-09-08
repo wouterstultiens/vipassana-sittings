@@ -66,7 +66,7 @@ Whether a sitting is video, audio only, or a one-way live stream.
 _Avoid_: format, mode, type
 
 **Sources**:
-Everything the extraction reads, written to the private data repo by one collect: the raw API and the text of every page in the page list. Rewritten whole on every collect, never interpreted.
+Everything the extraction reads, written to the private data repo by one collect: the raw API, the text of every page in the page list, and where every row url and host url leads. Rewritten whole on every collect, never interpreted.
 _Avoid_: collection, corpus, snapshot, cache, dump, golden dataset
 
 **Page list**:
@@ -81,10 +81,18 @@ _Avoid_: source page, host page, website source, external page
 The login in front of a page. Four kinds: none, a TYPO3 form, a WordPress login, and a WordPress post password. Every wall takes the one old-student login.
 _Avoid_: auth, gate, paywall
 
-**Prompt**:
-The extraction rules the LLM reads, kept as one file next to the pipeline. The owner fixes a wrong host by changing the prompt or the page list and rerunning, never by editing a host file.
-_Avoid_: system prompt, rules file, instructions
+**Extraction**:
+One writing of a host file from all the sources of that host. The owner does it with a coding agent, reads the result, and commits it. No schedule ever starts one, and no code in this repo calls a model.
+_Avoid_: refresh, import, sync, prompt
 
-**Run summary**:
-The report of one refresh: which hosts changed, were added, or vanished, and which failed with what reason. Written by the workflow so the owner can read it without opening logs.
-_Avoid_: log, report, status
+**Source watch**:
+The weekly run that reads the sources again and compares the hash of each host with the hash its file carries. It marks the hosts that moved and deletes the hosts the API dropped. It reads no meaning from a text.
+_Avoid_: refresh, crawl, monitor, cron
+
+**Source change**:
+A host whose source texts moved after its file was written. The host file carries the mark, every sitting of that host sends the old student to the host page, and `pnpm settle` takes the mark off once the file is written again.
+_Avoid_: stale, dirty, outdated, drift
+
+**Watch report**:
+The report of one source watch: which hosts changed, are new, or vanished, and which failed with what reason. The workflow writes it to the step summary and, when a host needs the owner, to a new issue.
+_Avoid_: log, run summary, status

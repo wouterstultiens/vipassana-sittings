@@ -15,6 +15,9 @@ export type Wall = "none" | "typo3" | "wordpress" | "post-password";
 
 export type Page = { url: string; wall: Wall; loginUrl?: string };
 
+// One page as it was read: its url and its stripped text.
+export type PageInput = { url: string; text: string };
+
 type Credentials = { user: string; pass: string };
 
 function credentials(): Credentials {
