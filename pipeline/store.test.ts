@@ -18,6 +18,7 @@ const host: Host = {
   country: "NL",
   city: "Example City",
   email: null,
+  eventsTitle: "NL, Central European Time (CET)",
   inputHash: "a",
   sourcesChanged: false,
 };

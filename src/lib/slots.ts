@@ -60,23 +60,42 @@ export function languageTagsOf(languages: string[]): LanguageTag[] {
  */
 export const languageTags = (slot: Slot): LanguageTag[] => languageTagsOf(slot.sittings.flatMap((s) => s.host.languages));
 
+/** True when a sitting in the slot asks the old student to sign up first, so the row says so before they plan it. */
+export const asksToApply = (slot: Slot): boolean => slot.sittings.some((s) => s.rule.applyFirst);
+
 // Widths in px of what a row holds, near enough to decide how many tags fit.
 const TAG_WIDTH = 25; // a 21 px flag and its 4 px gap
 const MORE_WIDTH = 20; // "+N"
 const LENGTH_WIDTH = 34; // "2½ h"
+const APPLY_WIDTH = 44; // "apply"
 const FIXED_WIDTH = 78; // padding, gaps, the time, and a one-digit count
 const DIGIT_WIDTH = 8;
 const MERIDIEM_WIDTH = 18; // what " PM" adds to the time on a 12-hour clock
 
 /**
  * How many language tags a row of the given width shows: all of them when
- * they fit, else as many as fit next to a "+N". Before the row is measured
- * (width 0) it shows up to three.
+ * they fit, else as many as fit next to a "+N". The length and the apply tag
+ * come first, because they say what the flags cannot. Before the row is
+ * measured (width 0) it shows up to three.
  */
-export function tagsThatFit(count: number, rowWidth: number, digits: number, hasLength: boolean, clock: Clock): number {
+export function tagsThatFit(row: {
+  count: number;
+  rowWidth: number;
+  digits: number;
+  hasLength: boolean;
+  asksToApply: boolean;
+  clock: Clock;
+}): number {
+  const { count, rowWidth, digits, hasLength, clock } = row;
   if (rowWidth <= 0) return Math.min(count, 3);
   const room =
-    rowWidth - FIXED_WIDTH - DIGIT_WIDTH * (digits - 1) - (hasLength ? LENGTH_WIDTH : 0) - (clock === "12h" ? MERIDIEM_WIDTH : 0) + 4; // the last tag has no gap
+    rowWidth -
+    FIXED_WIDTH -
+    DIGIT_WIDTH * (digits - 1) -
+    (hasLength ? LENGTH_WIDTH : 0) -
+    (row.asksToApply ? APPLY_WIDTH : 0) -
+    (clock === "12h" ? MERIDIEM_WIDTH : 0) +
+    4; // the last tag has no gap
   if (count * TAG_WIDTH <= room) return count;
   return Math.max(1, Math.floor((room - MORE_WIDTH) / TAG_WIDTH));
 }

@@ -52,13 +52,17 @@ export const DialIn = z.object({
 // copies the closing bracket along.
 const unbracket = (s: string) => s.replace(/\]$/, "");
 
-export const Join = z.object({
-  platform: Platform,
-  url: z.string().overwrite(unbracket).refine(isUrl).nullable(),
-  meetingId: z.string().nullable(),
-  password: Password,
-  dialIn: DialIn.nullable(),
-});
+export const Join = z
+  .object({
+    platform: Platform,
+    url: z.string().overwrite(unbracket).refine(isUrl).nullable(),
+    meetingId: z.string().nullable(),
+    password: Password,
+    dialIn: DialIn.nullable(),
+  })
+  // A sitting an old student cannot enter has no place on the calendar, so a
+  // join must give a way in: a link, or a number to call.
+  .refine((j) => j.url !== null || j.dialIn !== null, "no way in: give a url or a dial-in");
 
 export const Weekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
 export const WeekOfMonth = z.union([
@@ -87,6 +91,9 @@ export const Rule = z.object({
     .refine((s) => s.length > 0 && s.length <= 60)
     .nullable()
     .describe("The host's own short name for this sitting, at most 60 characters"),
+  applyFirst: z
+    .boolean()
+    .describe("True when the host asks the old student to sign up before the sitting, so nobody can walk in"),
   join: Join,
 });
 
@@ -117,6 +124,10 @@ export const Host = z.object({
   country: z.string().refine((s) => /^[A-Z]{2}$/.test(s)), // sub_location.country_iso_code
   city: z.string().nullable(), // sub_location.city
   email: z.string().nullable(), // sub_location.contact_email
+  // The heading this host sits under on the dhamma.org virtual events page:
+  // sub_location.time_zone, such as "US, Eastern Time Zone (ET)". It names the
+  // entry for a host that has no page of its own, and several hosts share one.
+  eventsTitle: z.string().refine(nonemptyString),
   inputHash: z.string(), // hash of every source text the extraction read
   // True when the source texts moved after this file was written: the site
   // sends the old student to the host page, and the owner writes the host again.

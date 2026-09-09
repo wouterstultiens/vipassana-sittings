@@ -29,6 +29,7 @@ import {
 import type { Sitting } from "@/lib/expand";
 import { downloadIcs, hostWeekday } from "@/lib/ics";
 import { passwordNote } from "@/lib/join";
+import { hostPage } from "@/lib/host-page";
 import { type Clock, countryName, fmtDate, fmtDuration, fmtRepeat, fmtSite, fmtTime, PLATFORM_LABEL, zoneAbbr } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -83,21 +84,16 @@ function Group({ name, children }: { name: string; children: React.ReactNode }) 
  * about how the site reads its data: only that the details may be old, that
  * the owner is on it, and where the truth is in the meantime.
  */
-function OldDetails({ pageUrl }: { pageUrl: string | null }) {
+function OldDetails({ pageUrl }: { pageUrl: string }) {
   return (
     <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
       <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
       <p>
-        The details for this sitting may be out of date, I will try to update it as soon as possible.{" "}
-        {pageUrl && (
-          <>
-            Please check{" "}
-            <a className="font-medium underline" href={pageUrl} target="_blank" rel="noopener">
-              the host page
-            </a>{" "}
-            for the latest information.
-          </>
-        )}
+        The details for this sitting may be out of date, I will try to update it as soon as possible. Please check{" "}
+        <a className="font-medium underline" href={pageUrl} target="_blank" rel="noopener">
+          the host page
+        </a>{" "}
+        for the latest information.
       </p>
     </div>
   );
@@ -142,6 +138,7 @@ export function SittingDetails({ sitting, zone, clock }: { sitting: Sitting; zon
   // line only says what the badges say, so it shows only when the host's clock
   // differs.
   const where = [host.city, countryName(host.country)].filter(Boolean).join(", ");
+  const page = hostPage(host);
 
   // The body scrolls up and down on its own; a drag to the right is the page's. Its text can be selected, as the page's cannot.
   return (
@@ -154,7 +151,7 @@ export function SittingDetails({ sitting, zone, clock }: { sitting: Sitting; zon
         {rule.label && <p className="text-sm text-muted-foreground">{rule.label}</p>}
       </header>
 
-      {host.sourcesChanged && <OldDetails pageUrl={host.pageUrl} />}
+      {host.sourcesChanged && <OldDetails pageUrl={page.url} />}
 
       <section className="rounded-lg border bg-card p-4">
         <div className="text-sm text-muted-foreground">{fmtDate(sitting.start, zone)}</div>
@@ -185,18 +182,17 @@ export function SittingDetails({ sitting, zone, clock }: { sitting: Sitting; zon
       </section>
 
       <Group name="Join">
-        {join.url ? (
+        {rule.applyFirst && (
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+            You cannot walk in: sign up with the host first, and read the host page for how.
+          </p>
+        )}
+        {join.url && (
           <Button asChild className="w-full">
             <a href={join.url} target="_blank" rel="noopener">
               <VideoIcon /> Open in {PLATFORM_LABEL[join.platform]} <ExternalLinkIcon />
             </a>
           </Button>
-        ) : (
-          !join.dialIn && (
-            <p className="text-sm text-muted-foreground">
-              No direct link. {host.pageUrl ? "Use the host page." : "Ask the host."}
-            </p>
-          )
         )}
         {(join.meetingId || password.kind !== "none" || join.dialIn) && (
           <div className="space-y-2">
@@ -244,12 +240,15 @@ export function SittingDetails({ sitting, zone, clock }: { sitting: Sitting; zon
       </Group>
 
       <Group name="Host">
-        {host.pageUrl && (
-          <Row label="Host page">
-            <a className={LINK} href={host.pageUrl} target="_blank" rel="noopener">
-              <GlobeIcon className="size-3 shrink-0" /> <span className="truncate">{fmtSite(host.pageUrl)}</span>
-              <ExternalLinkIcon className="size-3 shrink-0" />
-            </a>
+        <Row label="Host page">
+          <a className={LINK} href={page.url} target="_blank" rel="noopener">
+            <GlobeIcon className="size-3 shrink-0" /> <span className="truncate">{fmtSite(page.url)}</span>
+            <ExternalLinkIcon className="size-3 shrink-0" />
+          </a>
+        </Row>
+        {page.title && (
+          <Row label="Find it under">
+            <span className="truncate">{page.title}</span>
           </Row>
         )}
         {host.email && (

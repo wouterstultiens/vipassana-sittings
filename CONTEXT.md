@@ -45,16 +45,16 @@ How a time of day is written: on the 24-hour clock, "20:00", or on the 12-hour c
 _Avoid_: time format, hour format, AM/PM setting
 
 **Tag**:
-A short mark on a slot for what varies between slots: a flag per language on offer, or a length other than one hour.
+A short mark on a slot for what varies between slots: a flag per language on offer, a length other than one hour, or "apply" when a sitting in the slot asks the old student to sign up first.
 _Avoid_: chip, badge, label
 
 
 **Rule**:
-A recurrence of a host: which weekdays, which weeks of the month if not every week, what start time on the host's clock, how long, and its own join details. One host can carry several rules. A host with no rule still exists and is shown without a place on the calendar.
+A recurrence of a host: which weekdays, which weeks of the month if not every week, what start time on the host's clock, how long, whether the old student must sign up first, and its own join details. One host can carry several rules. A host with no rule still exists and is shown without a place on the calendar.
 _Avoid_: schedule, schedule rule, recurrence, RRULE
 
 **Join details**:
-What an old student needs to enter a sitting: the platform, the join link, the meeting id, the password, and the dial-in numbers. Every rule carries its own set in full, repeated when two rules or two hosts use the same room. Always extracted, never written by hand.
+What an old student needs to enter a sitting: the platform, the join link, the meeting id, the password, and the dial-in numbers. Every rule carries its own set in full, repeated when two rules or two hosts use the same room. They always give a way in, a link or a number to call, so a rule with neither is not written. Always extracted, never written by hand.
 _Avoid_: credentials, access info, connection details, room
 
 **Platform**:
@@ -74,8 +74,16 @@ The hand-kept list of every page on a host's site with detail about its sittings
 _Avoid_: source pages, host pages, host-pages.json
 
 **Page**:
-One entry of the page list: a URL on a host's site and its wall. The host's page link is the one page the extraction judges best for an old student to read.
+One entry of the page list: a URL on a host's site and its wall. The host's page link is the one page the extraction judges best for an old student to read. A host with no page of its own is sent to the virtual events page instead, under its events title.
 _Avoid_: source page, host page, website source, external page
+
+**Virtual events page**:
+`https://www.dhamma.org/en-US/os/locations/virtual_events`, where dhamma.org shows every row of the API. It holds every host, so it is the page link of a host that keeps none of its own.
+_Avoid_: dhamma.org page, events list, directory
+
+**Events title**:
+The heading a host sits under on the virtual events page, such as "US, Eastern Time Zone (ET)". The API states it, several hosts can share one, and the old student reads it to find their host on that page.
+_Avoid_: heading, section, group name, timezone label
 
 **Wall**:
 The login in front of a page. Six kinds: none, a TYPO3 form, a Drupal form, a WordPress login, a WordPress post password, and a site held by the Password Protected plugin. Every wall takes the one old-student login.
