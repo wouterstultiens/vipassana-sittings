@@ -17,6 +17,7 @@ export const aRule = (over: Partial<Rule> = {}): Rule => ({
   start: "07:00",
   durationMinutes: 60,
   label: null,
+  applyFirst: false,
   join: aJoin(),
   ...over,
 });
@@ -29,6 +30,7 @@ export const aHost = (over: Partial<Host> = {}): Host => ({
   city: "Dilsen",
   email: "info@example.org",
   pageUrl: "https://example.org",
+  eventsTitle: "NL, Central European Time (CET)",
   inputHash: "a",
   sourcesChanged: false,
   languages: ["en"],

@@ -5,6 +5,7 @@
 import { TZDate } from "@date-fns/tz";
 import { addMinutes, format } from "date-fns";
 import { type Sitting, WEEKDAYS } from "@/lib/expand";
+import { hostPage } from "@/lib/host-page";
 import { passwordNote } from "@/lib/join";
 import { fmtDuration } from "@/lib/labels";
 import type { Rule } from "@/schema/host";
@@ -62,16 +63,19 @@ export function icsEvent(sitting: Sitting, repeat = false): string {
   const { host, rule } = sitting;
   const { join } = rule;
   const start = new TZDate(sitting.start, host.timeZone);
+  const page = hostPage(host);
   const description = [
     rule.label ? `${host.name}, ${rule.label}` : host.name,
     `Lasts ${fmtDuration(rule.durationMinutes)}`,
+    rule.applyFirst ? "You cannot walk in: sign up with the host first" : "",
     join.url ? `Join: ${join.url}` : "",
     join.meetingId ? `Meeting id: ${join.meetingId}` : "",
     `Password: ${passwordNote(join.password)}`,
     join.dialIn ? `Dial in: ${join.dialIn.numbers.join(", ")}` : "",
     join.dialIn?.accessCode ? `Access code: ${join.dialIn.accessCode}` : "",
     join.dialIn?.password ? `Dial-in password: ${join.dialIn.password}` : "",
-    host.pageUrl ? `Host page: ${host.pageUrl}` : "",
+    `Host page: ${page.url}`,
+    page.title ? `Find it under: ${page.title}` : "",
   ].filter(Boolean);
 
   return [

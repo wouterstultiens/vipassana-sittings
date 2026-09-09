@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { expandSittings } from "@/lib/expand";
-import { languageTags, roundLength, slotsOf, tagsThatFit } from "@/lib/slots";
+import { asksToApply, languageTags, roundLength, slotsOf, tagsThatFit } from "@/lib/slots";
+import type { Clock } from "@/lib/labels";
 import { aHost, aRule } from "@/test/fixtures";
 import type { Host, Rule } from "@/schema/host";
 
@@ -70,26 +71,45 @@ describe("languageTags", () => {
   });
 });
 
+describe("asksToApply", () => {
+  it("marks a slot when one of its sittings asks the old student to sign up first", () => {
+    const [open] = slotsFor(withRule(1));
+    expect(asksToApply(open)).toBe(false);
+    const [mixed] = slotsFor(withRule(1), withRule(2, { applyFirst: true }));
+    expect(mixed.sittings).toHaveLength(2);
+    expect(asksToApply(mixed)).toBe(true);
+  });
+});
+
+// A row of one digit, no length tag, no apply tag, on a 24-hour clock.
+const fit = (row: { count: number; rowWidth: number; digits?: number; hasLength?: boolean; asksToApply?: boolean; clock?: Clock }) =>
+  tagsThatFit({ digits: 1, hasLength: false, asksToApply: false, clock: "24h", ...row });
+
 describe("tagsThatFit", () => {
   it("shows every tag when the row is wide enough, as on a phone", () => {
-    expect(tagsThatFit(5, 318, 1, false, "24h")).toBe(5);
-    expect(tagsThatFit(3, 318, 2, true, "24h")).toBe(3);
+    expect(fit({ count: 5, rowWidth: 318 })).toBe(5);
+    expect(fit({ count: 3, rowWidth: 318, digits: 2, hasLength: true })).toBe(3);
+  });
+
+  it("gives the apply tag its room before the flags", () => {
+    expect(fit({ count: 4, rowWidth: 181 })).toBe(4);
+    expect(fit({ count: 4, rowWidth: 181, asksToApply: true })).toBe(1);
   });
 
   it("keeps room for a +N when they do not all fit, as in a laptop column", () => {
-    expect(tagsThatFit(4, 181, 1, false, "24h")).toBe(4);
-    expect(tagsThatFit(5, 181, 1, false, "24h")).toBe(3);
-    expect(tagsThatFit(3, 181, 1, true, "24h")).toBe(2);
+    expect(fit({ count: 4, rowWidth: 181 })).toBe(4);
+    expect(fit({ count: 5, rowWidth: 181 })).toBe(3);
+    expect(fit({ count: 3, rowWidth: 181, hasLength: true })).toBe(2);
   });
 
   it("shows up to three before the row is measured, and never fewer than one", () => {
-    expect(tagsThatFit(5, 0, 1, false, "24h")).toBe(3);
-    expect(tagsThatFit(3, 90, 2, true, "24h")).toBe(1);
+    expect(fit({ count: 5, rowWidth: 0 })).toBe(3);
+    expect(fit({ count: 3, rowWidth: 90, digits: 2, hasLength: true })).toBe(1);
   });
 });
 
 describe("tagsThatFit on a 12-hour clock", () => {
   it("leaves room for the AM or PM", () => {
-    expect(tagsThatFit(4, 181, 1, false, "12h")).toBe(2);
+    expect(fit({ count: 4, rowWidth: 181, clock: "12h" })).toBe(2);
   });
 });

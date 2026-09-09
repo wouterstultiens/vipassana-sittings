@@ -65,8 +65,9 @@ describe("icsEvent", () => {
 
   it("names the host page, so the calendar holds the way to the schedule", () => {
     expect(unfold(icsEvent(sitting))).toContain("Host page: https://example.org");
-    const [s] = sittingsOf(aHost({ pageUrl: null }));
-    expect(unfold(icsEvent(s))).not.toContain("Host page");
+    const [s] = sittingsOf(aHost({ pageUrl: null, eventsTitle: "IN, India Standard Time (IST)" }));
+    expect(unfold(icsEvent(s))).toContain("Host page: https://www.dhamma.org/en-US/os/locations/virtual_events");
+    expect(unfold(icsEvent(s))).toContain("Find it under: IN\\, India Standard Time (IST)");
   });
 
   it("names the rule's label next to the host, so a half day reads as one", () => {

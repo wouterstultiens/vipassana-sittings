@@ -20,7 +20,6 @@
   "2037": [{ "url": "https://sarana.dhamma.org/pt-BR/meditacoes-em-grupo-vipassana/", "wall": "post-password" }],
   "2047": [{ "url": "https://malaya.dhamma.org/en/vgs.shtml", "wall": "none" }],
   "2063": [{ "url": "https://kunja.dhamma.org/os/practice/vgs/", "wall": "wordpress" }],
-  "2110": [{ "url": "https://malaya.dhamma.org/en/vgs.shtml", "wall": "none" }],
   "2126": [
     { "url": "https://korea.dhamma.org/en/old-student-site/group-sittings/virtual-group-sitting/", "wall": "typo3", "loginUrl": "https://korea.dhamma.org/old-student-site/" },
     { "url": "https://korea.dhamma.org/old-student-site/group-sittings/virtual-group-sitting/", "wall": "typo3", "loginUrl": "https://korea.dhamma.org/old-student-site/" }

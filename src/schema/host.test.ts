@@ -44,6 +44,10 @@ describe("Join", () => {
     expect(Join.parse({ ...join, url: null, dialIn }).dialIn).toEqual(dialIn);
   });
 
+  it("rejects a join with no way in", () => {
+    expect(Join.safeParse({ ...join, url: null }).success).toBe(false);
+  });
+
   it("rejects a dial-in that leaves the password out", () => {
     const dialIn = { numbers: ["+1 778 907 2071"], accessCode: "819 423 1414" };
     expect(Join.safeParse({ ...join, url: null, dialIn }).success).toBe(false);
